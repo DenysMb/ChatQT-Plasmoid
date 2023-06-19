@@ -14,21 +14,29 @@ import org.kde.plasma.plasmoid 2.0
 Item {
     property string parentMessageId: ''
 
-    function request(messageField, responseField, scrollView, prompt) {
+    function request(messageField, listModel, scrollView, prompt) {
         messageField.text = '';
 
-        responseField.text = "I am thinking...";
-        responseField.color = Kirigami.Theme.disabledTextColor;
-        
-        var url = 'https://chatbot.theb.ai/api/chat-process';
-        var data = JSON.stringify({
+        listModel.append({
+            "name": "User",
+            "number": prompt
+        });
+
+        if (scrollView.ScrollBar) {
+            scrollView.ScrollBar.vertical.position = 1;
+        }
+
+        const oldLength = listModel.count;
+        const url = 'https://chatbot.theb.ai/api/chat-process';
+        const data = JSON.stringify({
             "prompt": prompt,
             "options": {
                 "parentMessageId": parentMessageId
             }
         });
-        var xhr = new XMLHttpRequest();
         
+        let xhr = new XMLHttpRequest();
+
         xhr.open('POST', url, true);
         xhr.setRequestHeader('Content-Type', 'application/json');
         xhr.onreadystatechange = function() {
@@ -36,17 +44,34 @@ Item {
             const lastObject = objects[objects.length - 1];
             const parsedObject = JSON.parse(lastObject);
             const text = parsedObject.text;
-            
-            responseField.color = Kirigami.Theme.textColor;
-            responseField.text = text;
+
             parentMessageId = parsedObject.id;
-            
+
             if (scrollView.ScrollBar) {
                 scrollView.ScrollBar.vertical.position = 1 - scrollView.ScrollBar.vertical.size;
             }
 
+            if (listModel.count === oldLength) {
+                listModel.append({
+                    "name": "ChatGTP",
+                    "number": text
+                });
+            } else {
+                const lastValue = listModel.get(oldLength);
+
+                lastValue.number = text;
+            }
         };
+
         xhr.send(data);
+    }
+
+    function action_clearChat() {
+        listModel.clear();
+    }
+
+    Component.onCompleted: {
+        Plasmoid.setAction("clearChat", i18n("Clear chat"), "edit-clear");
     }
 
     Plasmoid.fullRepresentation: ColumnLayout {
@@ -62,24 +87,42 @@ Item {
             Layout.fillHeight: true
             Layout.minimumHeight: 150
             clip: true
-            rightPadding: 0
 
-            TextArea {
-                id: responseField
+            ListView {
+                id: listView
 
-                readOnly: true
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                rightPadding: Kirigami.Units.gridUnit * 1
-                placeholderText: i18n("I am waiting for your question...")
-            }
+                spacing: Kirigami.Units.smallSpacing
 
+                Kirigami.PlaceholderMessage {
+                    anchors.centerIn: parent
+                    width: parent.width - (Kirigami.Units.largeSpacing * 4)
+                    visible: listView.count === 0
+                    text: i18n("I am waiting for your questions...")
+                }
+
+                model: ListModel {
+                    id: listModel
+                }
+
+                delegate: Kirigami.AbstractCard {
+                    Layout.fillWidth: true
+
+                    contentItem: TextEdit {
+                        readOnly: true
+                        wrapMode: Text.WordWrap
+                        text: number
+                        color: name === "User" ? Kirigami.Theme.disabledTextColor : Kirigami.Theme.textColor
+                        selectByMouse: true
+                    }
+                }
+            }
         }
 
         ScrollView {
             Layout.fillWidth: true
-            Layout.fillHeight: true
-            Layout.minimumHeight: 150
+            Layout.preferredHeight: 100
             clip: true
             rightPadding: 0
 
@@ -89,12 +132,10 @@ Item {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 placeholderText: i18n("Type here what you want to ask...")
-
                 Keys.onReturnPressed: {
                     if (event.modifiers & Qt.ControlModifier) {
-                        request(messageField, responseField, scrollView, messageField.text);
-                    }
-                    else {
+                        request(messageField, listModel, scrollView, messageField.text);
+                    } else {
                         event.accepted = false;
                     }
                 }
@@ -111,10 +152,8 @@ Item {
             ToolTip.visible: hovered
             ToolTip.text: "CTRL+Enter"
             onClicked: {
-                request(messageField, responseField, scrollView, messageField.text);
+                request(messageField, listModel, scrollView, messageField.text);
             }
         }
-
     }
-
 }
