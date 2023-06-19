@@ -131,7 +131,6 @@ Item {
             Layout.fillWidth: true
             Layout.preferredHeight: 100
             clip: true
-            rightPadding: 0
 
             TextArea {
                 id: messageField
