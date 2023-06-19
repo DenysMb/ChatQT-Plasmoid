@@ -12,7 +12,10 @@ import org.kde.plasma.core 2.0 as PlasmaCore
 import org.kde.plasma.plasmoid 2.0
 
 Item {
+    id: root
+
     property string parentMessageId: ''
+    property var listModelController;
 
     function request(messageField, listModel, scrollView, prompt) {
         messageField.text = '';
@@ -67,7 +70,7 @@ Item {
     }
 
     function action_clearChat() {
-        listModel.clear();
+        listModelController.clear();
     }
 
     Component.onCompleted: {
@@ -104,6 +107,10 @@ Item {
 
                 model: ListModel {
                     id: listModel
+
+                    Component.onCompleted: {
+                        listModelController = listModel;
+                    }
                 }
 
                 delegate: Kirigami.AbstractCard {
