@@ -16,18 +16,27 @@ Item {
 
     function request(messageField, listModel, scrollView, prompt) {
         messageField.text = '';
+
         listModel.append({
             "name": "User",
             "number": prompt
         });
-        var url = 'https://chatbot.theb.ai/api/chat-process';
-        var data = JSON.stringify({
+
+        if (scrollView.ScrollBar) {
+            scrollView.ScrollBar.vertical.position = 1;
+        }
+
+        const oldLength = listModel.count;
+        const url = 'https://chatbot.theb.ai/api/chat-process';
+        const data = JSON.stringify({
             "prompt": prompt,
             "options": {
                 "parentMessageId": parentMessageId
             }
         });
-        var xhr = new XMLHttpRequest();
+        
+        let xhr = new XMLHttpRequest();
+
         xhr.open('POST', url, true);
         xhr.setRequestHeader('Content-Type', 'application/json');
         xhr.onreadystatechange = function() {
@@ -35,17 +44,25 @@ Item {
             const lastObject = objects[objects.length - 1];
             const parsedObject = JSON.parse(lastObject);
             const text = parsedObject.text;
+
             parentMessageId = parsedObject.id;
-            if (scrollView.ScrollBar)
+
+            if (scrollView.ScrollBar) {
                 scrollView.ScrollBar.vertical.position = 1 - scrollView.ScrollBar.vertical.size;
+            }
 
-            if (xhr.readyState === 4 && xhr.status === 200)
+            if (listModel.count === oldLength) {
                 listModel.append({
-                "name": "ChatGTP",
-                "number": text
-            });
+                    "name": "ChatGTP",
+                    "number": text
+                });
+            } else {
+                const lastValue = listModel.get(oldLength);
 
+                lastValue.number = text;
+            }
         };
+
         xhr.send(data);
     }
 
@@ -70,13 +87,13 @@ Item {
             Layout.fillHeight: true
             Layout.minimumHeight: 150
             clip: true
-            rightPadding: 0
 
             ListView {
                 id: listView
 
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+                spacing: Kirigami.Units.smallSpacing
 
                 Kirigami.PlaceholderMessage {
                     anchors.centerIn: parent
@@ -89,22 +106,23 @@ Item {
                     id: listModel
                 }
 
-                delegate: Text {
-                    width: parent.width
+                delegate: Kirigami.AbstractCard {
                     Layout.fillWidth: true
-                    text: name + ": " + number
-                    wrapMode: Text.Wrap
-                    color: name === "User" ? "green" : "red"
+
+                    contentItem: TextEdit {
+                        readOnly: true
+                        wrapMode: Text.WordWrap
+                        text: number
+                        color: name === "User" ? Kirigami.Theme.disabledTextColor : Kirigami.Theme.textColor
+                        selectByMouse: true
+                    }
                 }
-
             }
-
         }
 
         ScrollView {
             Layout.fillWidth: true
-            Layout.fillHeight: true
-            Layout.minimumHeight: 100
+            Layout.preferredHeight: 100
             clip: true
             rightPadding: 0
 
@@ -115,10 +133,11 @@ Item {
                 Layout.fillHeight: true
                 placeholderText: i18n("Type here what you want to ask...")
                 Keys.onReturnPressed: {
-                    if (event.modifiers & Qt.ControlModifier)
+                    if (event.modifiers & Qt.ControlModifier) {
                         request(messageField, listModel, scrollView, messageField.text);
-                    else
+                    } else {
                         event.accepted = false;
+                    }
                 }
             }
 
@@ -136,7 +155,5 @@ Item {
                 request(messageField, listModel, scrollView, messageField.text);
             }
         }
-
     }
-
 }
