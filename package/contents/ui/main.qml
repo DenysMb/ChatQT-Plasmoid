@@ -125,14 +125,37 @@ Item {
                 }
 
                 delegate: Kirigami.AbstractCard {
+                    id: abstractCard
                     Layout.fillWidth: true
 
-                    contentItem: TextEdit {
-                        readOnly: true
-                        wrapMode: Text.WordWrap
-                        text: number
-                        color: name === "User" ? Kirigami.Theme.disabledTextColor : Kirigami.Theme.textColor
-                        selectByMouse: true
+                    contentItem: RowLayout {
+                        Layout.fillHeight: true
+                        Layout.fillWidth: true
+
+                        TextEdit {
+                            id: textEdit
+                            Layout.fillHeight: true
+                            Layout.fillWidth: true
+                            readOnly: true
+                            wrapMode: Text.WordWrap
+                            text: number
+                            color: name === "User" ? Kirigami.Theme.disabledTextColor : Kirigami.Theme.textColor
+                            selectByMouse: true
+                        }
+                        
+                        Button {
+                            Layout.alignment: Qt.AlignTop
+                            hoverEnabled: true
+                            icon.name: "edit-copy"
+                            ToolTip.delay: 1000
+                            ToolTip.visible: hovered
+                            ToolTip.text: "Copy"
+                            onClicked: {
+                                textEdit.selectAll();
+                                textEdit.copy();
+                                textEdit.deselect();
+                            }
+                        }
                     }
                 }
             }
