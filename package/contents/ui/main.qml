@@ -7,9 +7,10 @@ import QtQuick 2.1
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.1
 import org.kde.kirigami 2.19 as Kirigami
-import org.kde.plasma.components 2.0 as PlasmaComponents
+import org.kde.plasma.components 3.0 as PlasmaComponents
 import org.kde.plasma.core 2.1 as PlasmaCore
 import org.kde.plasma.plasmoid 2.0
+import org.kde.plasma.extras 2.0 as PlasmaExtras
 
 Item {
     id: root
@@ -94,6 +95,31 @@ Item {
         Layout.fillWidth: true
         Layout.fillHeight: true
 
+        PlasmaExtras.PlasmoidHeading {
+            Layout.fillWidth: true
+            RowLayout {
+                Layout.fillWidth: true
+
+                Kirigami.Heading {
+                    Layout.fillWidth: true
+                    color: PlasmaCore.Theme.textColor
+                    text: "ChatQTP"
+                }
+
+                PlasmaComponents.ToolButton {
+                    checkable: true
+                    checked: plasmoid.configuration.pin
+                    icon.name: "window-pin"
+                    text: i18n("Keep Open")
+                    display: PlasmaComponents.ToolButton.IconOnly
+                    PlasmaComponents.ToolTip.text: text
+                    PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
+                    PlasmaComponents.ToolTip.visible: hovered
+                    onToggled: plasmoid.configuration.pin = checked
+                }
+            }
+        }
+
         ScrollView {
             id: scrollView
 
@@ -107,13 +133,15 @@ Item {
 
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                spacing: Kirigami.Units.smallSpacing
+                spacing: Kirigami.Units.mediumSpacing
 
-                Kirigami.PlaceholderMessage {
-                    anchors.centerIn: parent
-                    width: parent.width - (Kirigami.Units.largeSpacing * 4)
+                Kirigami.Heading {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
                     visible: listView.count === 0
                     text: i18n("I am waiting for your questions...")
+                    color: PlasmaCore.Theme.textColor
+                    opacity: 0.75
                 }
 
                 model: ListModel {
@@ -126,7 +154,9 @@ Item {
 
                 delegate: Kirigami.AbstractCard {
                     id: abstractCard
+                    Kirigami.Theme.colorSet: Kirigami.Theme.Selection
                     Layout.fillWidth: true
+                    opacity: name === "User" ? 0.5 : 0.75
 
                     contentItem: RowLayout {
                         Layout.fillHeight: true
@@ -143,8 +173,10 @@ Item {
                             selectByMouse: true
                         }
                         
-                        Button {
+                        PlasmaComponents.Button {
+                            flat: true
                             Layout.alignment: Qt.AlignTop
+                            opacity: hovered ? 1 : 0.5
                             hoverEnabled: true
                             icon.name: "edit-copy"
                             ToolTip.delay: 1000
@@ -166,7 +198,7 @@ Item {
             Layout.preferredHeight: 100
             clip: true
 
-            TextArea {
+            PlasmaComponents.TextArea {
                 id: messageField
                 activeFocusOnTab: true
 
@@ -189,7 +221,7 @@ Item {
 
         }
 
-        Button {
+        PlasmaComponents.Button {
             Layout.alignment: Qt.AlignHCenter
             Layout.fillWidth: true
             text: "Send"
