@@ -3,19 +3,20 @@
     SPDX-License-Identifier: LGPL-2.1-or-later
 */
 
-import QtQuick 2.1
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.1
-import org.kde.kirigami 2.19 as Kirigami
-import org.kde.plasma.components 2.0 as PlasmaComponents
-import org.kde.plasma.core 2.0 as PlasmaCore
-import org.kde.plasma.plasmoid 2.0
+import QtQuick 2.15
+import QtQuick.Controls
+import QtQuick.Layouts
+import org.kde.kirigami as Kirigami
+import org.kde.plasma.components as PlasmaComponents
+import org.kde.plasma.core as PlasmaCore
+import org.kde.plasma.plasmoid
 
-Item {
+PlasmoidItem {
     id: root
 
     property string parentMessageId: ''
     property var listModelController;
+    property bool isLoading: false
 
     function request(messageField, listModel, scrollView, prompt) {
         messageField.text = '';
@@ -25,17 +26,19 @@ Item {
             "number": prompt
         });
 
+        isLoading = true;
+
         if (scrollView.ScrollBar) {
             scrollView.ScrollBar.vertical.position = 1;
         }
 
         const oldLength = listModel.count;
-        const url = 'https://chatbot.theb.ai/api/chat-process';
+        const url = 'http://127.0.0.1:11434/api/chat';
         const data = JSON.stringify({
-            "prompt": prompt,
-            "options": {
-                "parentMessageId": parentMessageId
-            }
+            "model": "gemma2:latest",
+            "keep_alive": "5m",
+            "options": {},
+            "messages": [{ "role": "user", "content": prompt, "images": [] }]
         });
         
         let xhr = new XMLHttpRequest();
@@ -44,40 +47,45 @@ Item {
         xhr.setRequestHeader('Content-Type', 'application/json');
         xhr.onreadystatechange = function() {
             const objects = xhr.responseText.split('\n');
-            const lastObject = objects[objects.length - 1];
-            const parsedObject = JSON.parse(lastObject);
-            const text = parsedObject.text;
+            let text = '';
 
-            parentMessageId = parsedObject.id;
+            objects.forEach(object => {
+                const parsedObject = JSON.parse(object);
+                text = text + parsedObject?.message?.content;
 
-            if (scrollView.ScrollBar) {
-                scrollView.ScrollBar.vertical.position = 1 - scrollView.ScrollBar.vertical.size;
-            }
+                if (scrollView.ScrollBar) {
+                    scrollView.ScrollBar.vertical.position = 1 - scrollView.ScrollBar.vertical.size;
+                }
 
-            if (listModel.count === oldLength) {
-                listModel.append({
-                    "name": "ChatGTP",
-                    "number": text
-                });
-            } else {
-                const lastValue = listModel.get(oldLength);
+                if (listModel.count === oldLength) {
+                    listModel.append({
+                        "name": "ChatGTP",
+                        "number": text
+                    });
+                } else {
+                    const lastValue = listModel.get(oldLength);
 
-                lastValue.number = text;
-            }
+                    lastValue.number = text;
+                }
+            });
+        };
+
+        xhr.onload = function() {
+            isLoading = false;
         };
 
         xhr.send(data);
     }
 
-    function action_clearChat() {
-        listModelController.clear();
-    }
+    Plasmoid.contextualActions: [
+        PlasmaCore.Action {
+            text: i18n("Clear chat")
+            icon.name: "edit-clear"
+            onTriggered: listModelController.clear()
+        }
+    ]
 
-    Component.onCompleted: {
-        Plasmoid.setAction("clearChat", i18n("Clear chat"), "edit-clear");
-    }
-
-    Plasmoid.fullRepresentation: ColumnLayout {
+    fullRepresentation: ColumnLayout {
         Layout.preferredHeight: 400
         Layout.preferredWidth: 350
         Layout.fillWidth: true
@@ -137,13 +145,22 @@ Item {
 
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+
+                enabled: !isLoading
                 placeholderText: i18n("Type here what you want to ask...")
+
                 Keys.onReturnPressed: {
                     if (event.modifiers & Qt.ControlModifier) {
                         request(messageField, listModel, scrollView, messageField.text);
                     } else {
                         event.accepted = false;
                     }
+                }
+
+                BusyIndicator {
+                    id: indicator
+                    anchors.centerIn: parent
+                    running: isLoading
                 }
             }
 
@@ -152,11 +169,15 @@ Item {
         Button {
             Layout.alignment: Qt.AlignHCenter
             Layout.fillWidth: true
+            
             text: "Send"
             hoverEnabled: true
+            enabled: !isLoading
+
             ToolTip.delay: 1000
             ToolTip.visible: hovered
             ToolTip.text: "CTRL+Enter"
+            
             onClicked: {
                 request(messageField, listModel, scrollView, messageField.text);
             }
