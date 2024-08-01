@@ -10,6 +10,7 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.plasmoid
+import org.kde.plasma.extras as PlasmaExtras
 
 PlasmoidItem {
     id: root
@@ -21,6 +22,20 @@ PlasmoidItem {
     property var modelsArray: [];
     property bool isLoading: false
     property bool hasLocalModel: false;
+
+    function parseTextToComboBox(text) {
+        return text
+            .replace(/-/g, ' ')
+            .replace(/:(.+)/, ' ($1)')
+            .split(' ')
+            .map(word => {
+                if (word.startsWith('(')) {
+                    return word.charAt(0) + word.charAt(1).toUpperCase() + word.slice(2);
+                }
+                return word.charAt(0).toUpperCase() + word.slice(1);
+            })
+            .join(' ');
+    }
 
     function request(messageField, listModel, scrollView, prompt) {
         messageField.text = '';
@@ -107,7 +122,7 @@ PlasmoidItem {
 
                         modelsComboboxCurrentValue = models[0];
 
-                        modelsArray = models;
+                        modelsArray = models.map(model => ({ text: parseTextToComboBox(model), value: model }));
                     }
                 } else {
                     console.error('Erro na requisição:', xhr.status, xhr.statusText);
@@ -143,54 +158,60 @@ PlasmoidItem {
         Layout.fillWidth: true
         Layout.fillHeight: true
 
-        RowLayout {
-            visible: hasLocalModel
-            Layout.fillWidth: true
+        PlasmaExtras.PlasmoidHeading {
+            width: parent.width
 
-            PlasmaComponents.Button {
-                icon.name: "window-pin"
-                text: i18n("Keep Open")
-                display: PlasmaComponents.AbstractButton.IconOnly
-                checkable: true
-                checked: plasmoid.configuration.pin
-                onToggled: plasmoid.configuration.pin = checked
-                visible: !plasmoid.configuration.hideKeepOpen
-
-                PlasmaComponents.ToolTip.text: text
-                PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
-                PlasmaComponents.ToolTip.visible: hovered
-            }
-
-            PlasmaComponents.ComboBox {
-                id: modelsCombobox
-                enabled: hasLocalModel && !isLoading
-                hoverEnabled: hasLocalModel && !isLoading
-
+            contentItem: RowLayout {
+                visible: hasLocalModel
                 Layout.fillWidth: true
 
-                model: modelsArray
+                PlasmaComponents.Button {
+                    id: pinButton
+                    checkable: true
+                    checked: Plasmoid.configuration.pin
+                    onToggled: Plasmoid.configuration.pin = checked
+                    icon.name: "window-pin"
 
-                onActivated: {
-                    modelsComboboxCurrentValue = modelsCombobox.currentText;
+                    display: PlasmaComponents.AbstractButton.IconOnly
+                    text: i18n("Keep Open")
+
+                    PlasmaComponents.ToolTip.text: text
+                    PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
+                    PlasmaComponents.ToolTip.visible: hovered
                 }
 
-                Component.onCompleted: getModels()
-            }
+                PlasmaComponents.ComboBox {
+                    id: modelsCombobox
+                    enabled: hasLocalModel && !isLoading
+                    hoverEnabled: hasLocalModel && !isLoading
 
-            PlasmaComponents.Button {
-                icon.name: "edit-clear-symbolic"
-                text: "Clear chat"
-                display: PlasmaComponents.AbstractButton.IconOnly
-                enabled: hasLocalModel && !isLoading
-                hoverEnabled: hasLocalModel && !isLoading
+                    Layout.fillWidth: true
 
-                onClicked: {
-                    listModelController.clear();
+                    model: modelsArray.map(model => model.text)
+
+                    onActivated: {
+                        modelsComboboxCurrentValue = modelsArray.find(model => model.text === modelsCombobox.currentText).value;
+                        listModelController.clear();
+                    }
+
+                    Component.onCompleted: getModels()
                 }
 
-                PlasmaComponents.ToolTip.text: text
-                PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
-                PlasmaComponents.ToolTip.visible: hovered
+                PlasmaComponents.Button {
+                    icon.name: "edit-clear-symbolic"
+                    text: "Clear chat"
+                    display: PlasmaComponents.AbstractButton.IconOnly
+                    enabled: hasLocalModel && !isLoading
+                    hoverEnabled: hasLocalModel && !isLoading
+
+                    onClicked: {
+                        listModelController.clear();
+                    }
+
+                    PlasmaComponents.ToolTip.text: text
+                    PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
+                    PlasmaComponents.ToolTip.visible: hovered
+                }
             }
         }
 
@@ -217,7 +238,7 @@ PlasmoidItem {
                 }
 
                 model: ListModel {
-                    id: listModeld
+                    id: listModel
 
                     Component.onCompleted: {
                         listModelController = listModel;
