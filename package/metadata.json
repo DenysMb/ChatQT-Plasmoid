@@ -10,9 +10,9 @@
         "Description": "Quickly ask questions to your local LLVM with Ollama",
         "EnabledByDefault": true,
         "Icon": "dialog-messages",
-        "Id": "org.kde.plasma.chatqtp",
+        "Id": "org.kde.plasma.chatqt",
         "License": "LGPL-2.1+",
-        "Name": "ChatQTP",
+        "Name": "ChatQT",
         "KPackageStructure": "Plasma/Applet",
         "Version": "1.0",
         "Website": "https://plasma.kde.org/"

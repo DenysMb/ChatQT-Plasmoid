@@ -15,6 +15,7 @@ PlasmoidItem {
     id: root
 
     property string parentMessageId: ''
+    property string modelsComboboxCurrentValue: '';    
     property var listModelController;
     property bool isLoading: false
 
@@ -35,7 +36,7 @@ PlasmoidItem {
         const oldLength = listModel.count;
         const url = 'http://127.0.0.1:11434/api/chat';
         const data = JSON.stringify({
-            "model": "gemma2:latest",
+            "model": modelsComboboxCurrentValue,
             "keep_alive": "5m",
             "options": {},
             "messages": [{ "role": "user", "content": prompt, "images": [] }]
@@ -90,6 +91,66 @@ PlasmoidItem {
         Layout.preferredWidth: 350
         Layout.fillWidth: true
         Layout.fillHeight: true
+
+        RowLayout {
+            Layout.fillWidth: true
+            PlasmaComponents.ComboBox {
+                id: modelsCombobox
+                enabled: !!model.length && !isLoading
+
+                Layout.fillWidth: true
+
+                model: []
+
+                onActivated: {
+                    modelsComboboxCurrentValue = modelsCombobox.currentText;
+                }
+
+                Component.onCompleted: {
+                    const url = 'http://127.0.0.1:11434/api/tags';
+            
+                    let xhr = new XMLHttpRequest();
+
+                    xhr.open('GET', url);
+                    xhr.setRequestHeader('Content-Type', 'application/json');
+
+                    xhr.onreadystatechange = function() {
+                        if (xhr.readyState === XMLHttpRequest.DONE) {
+                            if (xhr.status === 200) {
+                                const objects = JSON.parse(xhr.responseText).models;
+                                
+                                const models = objects.map(object => object.model);
+
+                                modelsComboboxCurrentValue = models[0];
+
+                                model = models;
+                            } else {
+                                console.error('Erro na requisição:', xhr.status, xhr.statusText);
+
+                                model = [];
+                            }
+                        }
+                    };
+
+                    xhr.send();
+                }
+            }
+
+            PlasmaComponents.Button {
+                icon.name: "edit-clear-symbolic"
+                text: "Clear chat"
+                display: PlasmaComponents.AbstractButton.IconOnly
+                enabled: !isLoading
+
+                onClicked: {
+                    listModelController.clear();
+                }
+
+                PlasmaComponents.ToolTip.text: text
+                PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
+                PlasmaComponents.ToolTip.visible: hovered
+            }
+        }
 
         ScrollView {
             id: scrollView
@@ -147,6 +208,7 @@ PlasmoidItem {
                 Layout.fillHeight: true
 
                 enabled: !isLoading
+                hoverEnabled: !isLoading
                 placeholderText: i18n("Type here what you want to ask...")
 
                 Keys.onReturnPressed: {
