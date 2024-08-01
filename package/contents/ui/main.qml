@@ -220,6 +220,7 @@ PlasmoidItem {
                 enabled: !isLoading
                 hoverEnabled: !isLoading
                 placeholderText: i18n("Type here what you want to ask...")
+                wrapMode: TextArea.Wrap
 
                 Keys.onReturnPressed: {
                     if (event.modifiers & Qt.ControlModifier) {
