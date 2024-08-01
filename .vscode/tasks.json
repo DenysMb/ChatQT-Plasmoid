@@ -7,7 +7,7 @@
       "label": "plasmoidviewer",
       "type": "shell",
       "command": "plasmoidviewer",
-      "args": ["-a", "./package"]
+      "args": ["-a", "./"]
     }
   ]
 }
