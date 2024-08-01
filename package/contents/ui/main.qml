@@ -152,6 +152,8 @@ PlasmoidItem {
         }
     ]
 
+    compactRepresentation: CompactRepresentation {}
+
     fullRepresentation: ColumnLayout {
         Layout.preferredHeight: 400
         Layout.preferredWidth: 350

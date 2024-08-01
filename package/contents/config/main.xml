@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0
+      http://www.kde.org/standards/kcfg/1.0/kcfg.xsd" >
+  <kcfgfile name=""/>
+
+  <group name="General">
+    <entry name="useFilledIcon" type="Bool">
+      <label>Use the widget's filled icon</label>
+      <default>true</default>
+    </entry>
+    <entry name="useOutlinedIcon" type="Bool">
+      <label>Use the widget's outlined icon</label>
+      <default>false</default>
+    </entry>
+    <entry name="useFilledLightIcon" type="Bool">
+      <label>Use the widget's filled light icon</label>
+      <default>false</default>
+    </entry>
+    <entry name="useFilledDarkIcon" type="Bool">
+      <label>Use the widget's filled dark icon</label>
+      <default>false</default>
+    </entry>
+    <entry name="useOutlinedLightIcon" type="Bool">
+      <label>Use the widget's outlined light icon</label>
+      <default>false</default>
+    </entry>
+    <entry name="useOutlinedDarkIcon" type="Bool">
+      <label>Use the widget's outlined dark icon</label>
+      <default>false</default>
+    </entry>
+  </group>
+</kcfg>
