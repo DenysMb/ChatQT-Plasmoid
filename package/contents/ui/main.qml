@@ -18,7 +18,9 @@ PlasmoidItem {
     property string modelsComboboxCurrentValue: '';    
     property var listModelController;
     property var promptArray: [];
+    property var modelsArray: [];
     property bool isLoading: false
+    property bool hasLocalModel: false;
 
     function request(messageField, listModel, scrollView, prompt) {
         messageField.text = '';
@@ -85,6 +87,37 @@ PlasmoidItem {
         xhr.send(data);
     }
 
+    function getModels() {
+        const url = 'http://127.0.0.1:11434/api/tags';
+
+        let xhr = new XMLHttpRequest();
+
+        xhr.open('GET', url);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === XMLHttpRequest.DONE) {
+                if (xhr.status === 200) {
+                    const objects = JSON.parse(xhr.responseText).models;
+                    
+                    const models = objects.map(object => object.model);
+
+                    if (models.length) {
+                        hasLocalModel = true;
+
+                        modelsComboboxCurrentValue = models[0];
+
+                        modelsArray = models;
+                    }
+                } else {
+                    console.error('Erro na requisição:', xhr.status, xhr.statusText);
+                }
+            }
+        };
+
+        xhr.send();
+    }
+
     Plasmoid.contextualActions: [
         PlasmaCore.Action {
             text: i18n("Clear chat")
@@ -103,54 +136,31 @@ PlasmoidItem {
         Layout.fillHeight: true
 
         RowLayout {
+            visible: hasLocalModel
             Layout.fillWidth: true
+
             PlasmaComponents.ComboBox {
                 id: modelsCombobox
-                enabled: !!model.length && !isLoading
+                enabled: hasLocalModel && !isLoading
+                hoverEnabled: hasLocalModel && !isLoading
 
                 Layout.fillWidth: true
 
-                model: []
+                model: modelsArray
 
                 onActivated: {
                     modelsComboboxCurrentValue = modelsCombobox.currentText;
                 }
 
-                Component.onCompleted: {
-                    const url = 'http://127.0.0.1:11434/api/tags';
-            
-                    let xhr = new XMLHttpRequest();
-
-                    xhr.open('GET', url);
-                    xhr.setRequestHeader('Content-Type', 'application/json');
-
-                    xhr.onreadystatechange = function() {
-                        if (xhr.readyState === XMLHttpRequest.DONE) {
-                            if (xhr.status === 200) {
-                                const objects = JSON.parse(xhr.responseText).models;
-                                
-                                const models = objects.map(object => object.model);
-
-                                modelsComboboxCurrentValue = models[0];
-
-                                model = models;
-                            } else {
-                                console.error('Erro na requisição:', xhr.status, xhr.statusText);
-
-                                model = [];
-                            }
-                        }
-                    };
-
-                    xhr.send();
-                }
+                Component.onCompleted: getModels()
             }
 
             PlasmaComponents.Button {
                 icon.name: "edit-clear-symbolic"
                 text: "Clear chat"
                 display: PlasmaComponents.AbstractButton.IconOnly
-                enabled: !isLoading
+                enabled: hasLocalModel && !isLoading
+                hoverEnabled: hasLocalModel && !isLoading
 
                 onClicked: {
                     listModelController.clear();
@@ -181,11 +191,11 @@ PlasmoidItem {
                     anchors.centerIn: parent
                     width: parent.width - (Kirigami.Units.largeSpacing * 4)
                     visible: listView.count === 0
-                    text: i18n("I am waiting for your questions...")
+                    text: i18n(hasLocalModel ? "I am waiting for your questions..." : "No local model found.\nPlease install some first.\n\nIf you need help, check Ollama documentation.")
                 }
 
                 model: ListModel {
-                    id: listModel
+                    id: listModeld
 
                     Component.onCompleted: {
                         listModelController = listModel;
@@ -210,6 +220,7 @@ PlasmoidItem {
             Layout.fillWidth: true
             Layout.preferredHeight: 100
             clip: true
+            visible: hasLocalModel
 
             TextArea {
                 id: messageField
@@ -217,8 +228,8 @@ PlasmoidItem {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
 
-                enabled: !isLoading
-                hoverEnabled: !isLoading
+                enabled: hasLocalModel && !isLoading
+                hoverEnabled: hasLocalModel && !isLoading
                 placeholderText: i18n("Type here what you want to ask...")
                 wrapMode: TextArea.Wrap
 
@@ -244,8 +255,9 @@ PlasmoidItem {
             Layout.fillWidth: true
             
             text: "Send"
-            hoverEnabled: true
-            enabled: !isLoading
+            hoverEnabled: hasLocalModel && !isLoading
+            enabled: hasLocalModel && !isLoading
+            visible: hasLocalModel
 
             ToolTip.delay: 1000
             ToolTip.visible: hovered
@@ -254,6 +266,16 @@ PlasmoidItem {
             onClicked: {
                 request(messageField, listModel, scrollView, messageField.text);
             }
+        }
+
+        Button {
+            Layout.alignment: Qt.AlignHCenter
+            Layout.fillWidth: true
+            
+            text: "Refresh models list"
+            visible: !hasLocalModel
+            
+            onClicked: getModels()
         }
     }
 }
