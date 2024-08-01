@@ -120,6 +120,14 @@ PlasmoidItem {
 
     Plasmoid.contextualActions: [
         PlasmaCore.Action {
+            text: i18n("Keep Open")
+            icon.name: "window-pin"
+            priority: Plasmoid.LowPriorityAction
+            checkable: true
+            checked: plasmoid.configuration.pin
+            onTriggered: plasmoid.configuration.pin = checked
+        },
+        PlasmaCore.Action {
             text: i18n("Clear chat")
             icon.name: "edit-clear"
             onTriggered: {
@@ -138,6 +146,20 @@ PlasmoidItem {
         RowLayout {
             visible: hasLocalModel
             Layout.fillWidth: true
+
+            PlasmaComponents.Button {
+                icon.name: "window-pin"
+                text: i18n("Keep Open")
+                display: PlasmaComponents.AbstractButton.IconOnly
+                checkable: true
+                checked: plasmoid.configuration.pin
+                onToggled: plasmoid.configuration.pin = checked
+                visible: !plasmoid.configuration.hideKeepOpen
+
+                PlasmaComponents.ToolTip.text: text
+                PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
+                PlasmaComponents.ToolTip.visible: hovered
+            }
 
             PlasmaComponents.ComboBox {
                 id: modelsCombobox
