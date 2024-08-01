@@ -17,6 +17,7 @@ PlasmoidItem {
     property string parentMessageId: ''
     property string modelsComboboxCurrentValue: '';    
     property var listModelController;
+    property var promptArray: [];
     property bool isLoading: false
 
     function request(messageField, listModel, scrollView, prompt) {
@@ -26,6 +27,8 @@ PlasmoidItem {
             "name": "User",
             "number": prompt
         });
+
+        promptArray.push({ "role": "user", "content": prompt, "images": [] });
 
         isLoading = true;
 
@@ -39,7 +42,7 @@ PlasmoidItem {
             "model": modelsComboboxCurrentValue,
             "keep_alive": "5m",
             "options": {},
-            "messages": [{ "role": "user", "content": prompt, "images": [] }]
+            "messages": promptArray
         });
         
         let xhr = new XMLHttpRequest();
@@ -72,7 +75,11 @@ PlasmoidItem {
         };
 
         xhr.onload = function() {
+            const lastValue = listModel.get(oldLength);
+
             isLoading = false;
+
+            promptArray.push({ "role": "assistant", "content": lastValue.number, "images": [] });
         };
 
         xhr.send(data);
@@ -82,7 +89,10 @@ PlasmoidItem {
         PlasmaCore.Action {
             text: i18n("Clear chat")
             icon.name: "edit-clear"
-            onTriggered: listModelController.clear()
+            onTriggered: {
+                listModelController.clear();
+                promptArray = [];
+            }
         }
     ]
 
