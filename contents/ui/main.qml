@@ -212,7 +212,7 @@ PlasmoidItem {
 
                 PlasmaComponents.Button {
                     icon.name: "edit-clear-symbolic"
-                    text: "Clear chat"
+                    text: i18n("Clear chat")
                     display: PlasmaComponents.AbstractButton.IconOnly
                     enabled: hasLocalModel && !isLoading
                     hoverEnabled: hasLocalModel && !isLoading
@@ -247,7 +247,7 @@ PlasmoidItem {
                     anchors.centerIn: parent
                     width: parent.width - (Kirigami.Units.largeSpacing * 4)
                     visible: listView.count === 0
-                    text: i18n(hasLocalModel ? "I am waiting for your questions..." : "No local model found.\nPlease install some first.\n\nIf you need help, check Ollama documentation.")
+                    text: hasLocalModel ? i18n("I am waiting for your questions...") : i18n("No local model found.\nPlease install some first.\n\nIf you need help, check Ollama documentation.")
                 }
 
                 model: ListModel {
@@ -276,7 +276,7 @@ PlasmoidItem {
                             anchors.right: parent.right
 
                             icon.name: "edit-copy-symbolic"
-                            text: "Copy"
+                            text: i18n("Copy")
                             display: PlasmaComponents.AbstractButton.IconOnly
                             visible: hoverHandler.hovered
                             
@@ -337,7 +337,7 @@ PlasmoidItem {
             Layout.alignment: Qt.AlignHCenter
             Layout.fillWidth: true
             
-            text: "Send"
+            text: i18n("Send")
             hoverEnabled: hasLocalModel && !isLoading
             enabled: hasLocalModel && !isLoading
             visible: hasLocalModel
@@ -355,7 +355,7 @@ PlasmoidItem {
             Layout.alignment: Qt.AlignHCenter
             Layout.fillWidth: true
             
-            text: "Refresh models list"
+            text: i18n("Refresh models list")
             visible: !hasLocalModel
             
             onClicked: getModels()
