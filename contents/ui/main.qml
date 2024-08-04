@@ -22,6 +22,7 @@ PlasmoidItem {
     property var modelsArray: [];
     property bool isLoading: false
     property bool hasLocalModel: false;
+    property bool disableAutoScroll: false;
 
     function parseTextToComboBox(text) {
         return text
@@ -49,7 +50,7 @@ PlasmoidItem {
 
         isLoading = true;
 
-        if (scrollView.ScrollBar) {
+        if (!disableAutoScroll && scrollView.ScrollBar) {
             scrollView.ScrollBar.vertical.position = 1;
         }
 
@@ -78,7 +79,7 @@ PlasmoidItem {
                     text = text.trim();
                 }
 
-                if (scrollView.ScrollBar) {
+                if (!disableAutoScroll && scrollView.ScrollBar) {
                     scrollView.ScrollBar.vertical.position = 1 - scrollView.ScrollBar.vertical.size;
                 }
 
@@ -141,7 +142,6 @@ PlasmoidItem {
         PlasmaCore.Action {
             text: i18n("Keep Open")
             icon.name: "window-pin"
-            priority: Plasmoid.LowPriorityAction
             checkable: true
             checked: Plasmoid.configuration.pin
             onTriggered: Plasmoid.configuration.pin = checked
@@ -153,6 +153,13 @@ PlasmoidItem {
                 listModelController.clear();
                 promptArray = [];
             }
+        },
+        PlasmaCore.Action {
+            text: i18n("Disable auto scroll")
+            icon.name: "transform-move-vertical"
+            checkable: true
+            checked: disableAutoScroll
+            onTriggered: disableAutoScroll = !disableAutoScroll
         }
     ]
 
