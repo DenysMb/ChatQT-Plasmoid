@@ -80,7 +80,7 @@ PlasmoidItem {
 
                 if (listModel.count === oldLength) {
                     listModel.append({
-                        "name": "ChatGTP",
+                        "name": "ChatGPT",
                         "number": text
                     });
                 } else {
