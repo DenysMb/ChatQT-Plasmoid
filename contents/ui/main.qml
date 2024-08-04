@@ -70,9 +70,13 @@ PlasmoidItem {
             const objects = xhr.responseText.split('\n');
             let text = '';
 
-            objects.forEach(object => {
+            objects.forEach((object, index) => {
                 const parsedObject = JSON.parse(object);
                 text = text + parsedObject?.message?.content;
+
+                if (index === 0 ) {
+                    text = text.trim();
+                }
 
                 if (scrollView.ScrollBar) {
                     scrollView.ScrollBar.vertical.position = 1 - scrollView.ScrollBar.vertical.size;
@@ -80,7 +84,7 @@ PlasmoidItem {
 
                 if (listModel.count === oldLength) {
                     listModel.append({
-                        "name": "ChatGTP",
+                        "name": "Assistant",
                         "number": text
                     });
                 } else {
@@ -139,8 +143,8 @@ PlasmoidItem {
             icon.name: "window-pin"
             priority: Plasmoid.LowPriorityAction
             checkable: true
-            checked: plasmoid.configuration.pin
-            onTriggered: plasmoid.configuration.pin = checked
+            checked: Plasmoid.configuration.pin
+            onTriggered: Plasmoid.configuration.pin = checked
         },
         PlasmaCore.Action {
             text: i18n("Clear chat")
@@ -227,10 +231,10 @@ PlasmoidItem {
 
             ListView {
                 id: listView
+                spacing: Kirigami.Units.smallSpacing
 
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                spacing: Kirigami.Units.smallSpacing
 
                 Kirigami.PlaceholderMessage {
                     anchors.centerIn: parent
@@ -249,13 +253,40 @@ PlasmoidItem {
 
                 delegate: Kirigami.AbstractCard {
                     Layout.fillWidth: true
+                    implicitHeight: 24 + textMessage.implicitHeight
 
                     contentItem: TextEdit {
+                        id: textMessage
+
+                        topPadding: 8
                         readOnly: true
                         wrapMode: Text.WordWrap
                         text: number
                         color: name === "User" ? Kirigami.Theme.disabledTextColor : Kirigami.Theme.textColor
                         selectByMouse: true
+
+                        PlasmaComponents.Button {
+                            anchors.right: parent.right
+
+                            icon.name: "edit-copy-symbolic"
+                            text: "Copy"
+                            display: PlasmaComponents.AbstractButton.IconOnly
+                            visible: hoverHandler.hovered
+                            
+                            onClicked: {
+                                textMessage.selectAll();
+                                textMessage.copy();
+                                textMessage.deselect();
+                            }
+
+                            PlasmaComponents.ToolTip.text: text
+                            PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
+                            PlasmaComponents.ToolTip.visible: hovered
+                        }
+
+                        HoverHandler {
+                            id: hoverHandler
+                        }
                     }
                 }
             }

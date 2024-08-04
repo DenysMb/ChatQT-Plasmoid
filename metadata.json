@@ -15,7 +15,7 @@
         "Name": "ChatQT",
         "KPackageStructure": "Plasma/Applet",
         "Version": "1.0",
-        "Website": "https://plasma.kde.org/"
+        "Website": "https://github.com/DenysMb/ChatQT-Plasmoid"
     },
     "X-Plasma-API-Minimum-Version": "6.0"
 }
