@@ -1,5 +1,3 @@
-> ⚠️ **ATTENTION**: Due to a change made in the API that I was using (BAI Chat), **this widget is not working at the moment**. I am looking for an alternative API.
-
 # ChatQT
 ChatQT is an Ollama client where you can quickly chat with all your local models downloaded with Ollama.
 
