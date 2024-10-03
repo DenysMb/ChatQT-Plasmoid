@@ -1,4 +1,5 @@
 {
+    "KPackageStructure": "Plasma/Applet",
     "KPlugin": {
         "Authors": [
             {
@@ -8,12 +9,10 @@
         ],
         "Category": "Utilities",
         "Description": "Quickly ask questions to your local LLVM with Ollama",
-        "EnabledByDefault": true,
         "Icon": "org.kde.neochat.tray",
-        "Id": "ChatQT",
+        "Id": "ChatQT-Plasmoid",
         "License": "LGPL-2.1+",
         "Name": "ChatQT",
-        "KPackageStructure": "Plasma/Applet",
         "Version": "1.0",
         "Website": "https://github.com/DenysMb/ChatQT-Plasmoid"
     },
