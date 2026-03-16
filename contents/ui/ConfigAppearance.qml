@@ -11,66 +11,57 @@ import org.kde.plasma.core as PlasmaCore
 
 KCM.SimpleKCM {
     property string cfg_icon: plasmoid.configuration.icon
-    property alias cfg_useFilledIcon: useFilledIcon.checked
-    property alias cfg_useOutlinedIcon: useOutlinedIcon.checked
-    property alias cfg_useFilledLightIcon: useFilledLightIcon.checked
-    property alias cfg_useFilledDarkIcon: useFilledDarkIcon.checked
-    property alias cfg_useOutlinedLightIcon: useOutlinedLightIcon.checked
-    property alias cfg_useOutlinedDarkIcon: useOutlinedDarkIcon.checked
+    property string cfg_iconStyle: plasmoid.configuration.iconStyle
+    property string cfg_provider: plasmoid.configuration.provider
 
     Kirigami.FormLayout {
+        QQC2.ComboBox {
+            id: iconStyleComboBox
 
-        QQC2.ButtonGroup {
-            id: iconGroup
+            Kirigami.FormData.label: i18nc("@title:group", "Icon style:")
+
+            model: [
+                { text: i18nc("@option:combobox", "Filled adaptive"), value: "filled-adaptive" },
+                { text: i18nc("@option:combobox", "Outlined adaptive"), value: "outlined-adaptive" },
+                { text: i18nc("@option:combobox", "Filled dark"), value: "filled-dark" },
+                { text: i18nc("@option:combobox", "Filled light"), value: "filled-light" },
+                { text: i18nc("@option:combobox", "Outlined dark"), value: "outlined-dark" },
+                { text: i18nc("@option:combobox", "Outlined light"), value: "outlined-light" }
+            ]
+
+            textRole: "text"
+            valueRole: "value"
+
+            onCurrentValueChanged: {
+                cfg_iconStyle = currentValue
+            }
+
+            Component.onCompleted: {
+                currentIndex = indexOfValue(cfg_iconStyle)
+            }
         }
 
-        QQC2.RadioButton {
-            id: useFilledIcon
+        QQC2.ComboBox {
+            id: providerComboBox
 
-            Kirigami.FormData.label: i18nc("@title:group", "Icon:")
-            text: i18nc("@option:radio", "Filled adaptive icon")
+            Kirigami.FormData.label: i18nc("@title:group", "AI Provider:")
 
-            QQC2.ButtonGroup.group: iconGroup
-        }
+            model: [
+                { text: i18nc("@option:combobox", "Ollama"), value: "ollama" },
+                { text: i18nc("@option:combobox", "OpenClaw"), value: "openclaw" },
+                { text: i18nc("@option:combobox", "OpenAI Compatible"), value: "openai-compatible" }
+            ]
 
-        QQC2.RadioButton {
-            id: useOutlinedIcon
+            textRole: "text"
+            valueRole: "value"
 
-            text: i18nc("@option:radio", "Outlined adaptive icon")
+            onCurrentValueChanged: {
+                cfg_provider = currentValue
+            }
 
-            QQC2.ButtonGroup.group: iconGroup
-        }
-
-        QQC2.RadioButton {
-            id: useFilledDarkIcon
-
-            text: i18nc("@option:radio", "Filled dark icon")
-
-            QQC2.ButtonGroup.group: iconGroup
-        }
-
-        QQC2.RadioButton {
-            id: useFilledLightIcon
-
-            text: i18nc("@option:radio", "Filled light icon")
-
-            QQC2.ButtonGroup.group: iconGroup
-        }
-
-        QQC2.RadioButton {
-            id: useOutlinedDarkIcon
-
-            text: i18nc("@option:radio", "Outlined dark icon")
-
-            QQC2.ButtonGroup.group: iconGroup
-        }
-
-        QQC2.RadioButton {
-            id: useOutlinedLightIcon
-
-            text: i18nc("@option:radio", "Outlined light icon")
-
-            QQC2.ButtonGroup.group: iconGroup
+            Component.onCompleted: {
+                currentIndex = indexOfValue(cfg_provider || "ollama")
+            }
         }
     }
 }
