@@ -14,30 +14,62 @@ PlasmaExtras.PlasmoidHeading {
     id: root
 
     signal clearChatRequested
-    signal modelSelected(string modelValue)
+    signal providerSelected(string provider, string model)
 
-    property bool isProviderConfigured: false
     property bool isLoading: false
     property string currentProvider: "ollama"
-    property bool hasLocalModel: false
-    property var modelsArray: []
-    property var modelsComboboxCurrentValue: ""
+    property string currentModel: ""
+    property var ollamaModels: []
+    property bool enableOllama: true
+    property bool enableOpenClaw: false
+    property bool enableOpenAICompatible: false
+    property string openaiCompatibleModelName: ""
     property bool thinkingEnabled: true
     property var listModelController: null
-    property string openaiCompatibleModelName: ""
 
     width: parent.width
 
+    function buildProviderModel() {
+        var items = []
+
+        if (enableOpenClaw) {
+            items.push({
+                text: "OpenClaw",
+                provider: "openclaw",
+                model: ""
+            })
+        }
+
+        if (enableOpenAICompatible && openaiCompatibleModelName) {
+            items.push({
+                text: openaiCompatibleModelName + " (OpenAI Compatible)",
+                provider: "openai-compatible",
+                model: openaiCompatibleModelName
+            })
+        }
+
+        if (enableOllama && ollamaModels.length > 0) {
+            ollamaModels.forEach(function(modelObj) {
+                items.push({
+                    text: modelObj.text + " (Ollama)",
+                    provider: "ollama",
+                    model: modelObj.value
+                })
+            })
+        }
+
+        return items
+    }
+
     contentItem: RowLayout {
-        visible: root.isProviderConfigured
         Layout.fillWidth: true
 
         PlasmaComponents.ToolButton {
             icon.name: "edit-clear-history-symbolic"
             text: i18n("Clear chat")
             display: PlasmaComponents.AbstractButton.IconOnly
-            enabled: root.isProviderConfigured && !root.isLoading
-            hoverEnabled: root.isProviderConfigured && !root.isLoading
+            enabled: providerComboBox.count > 0 && !root.isLoading
+            hoverEnabled: providerComboBox.count > 0 && !root.isLoading
 
             onClicked: root.clearChatRequested()
 
@@ -47,62 +79,74 @@ PlasmaExtras.PlasmoidHeading {
         }
 
         PlasmaComponents.ComboBox {
-            id: modelsCombobox
-            visible: root.currentProvider === "ollama"
-            enabled: root.hasLocalModel && !root.isLoading
-            hoverEnabled: root.hasLocalModel && !root.isLoading
+            id: providerComboBox
 
             Layout.fillWidth: true
+            enabled: count > 0 && !root.isLoading
+            hoverEnabled: count > 0 && !root.isLoading
 
-            model: root.modelsArray.map(model => model.text)
+            model: root.buildProviderModel().map(function(item) { return item.text })
+
+            property var itemsModel: root.buildProviderModel()
 
             onActivated: {
-                const selectedModel = root.modelsArray.find(model => model.text === modelsCombobox.currentText);
-                if (selectedModel) {
-                    root.modelSelected(selectedModel.value);
+                var selectedItem = itemsModel[currentIndex]
+                if (selectedItem) {
+                    root.providerSelected(selectedItem.provider, selectedItem.model)
                 }
             }
-        }
 
-        PlasmaComponents.Label {
-            visible: root.currentProvider === "openclaw"
-            Layout.fillWidth: true
-            text: "OpenClaw"
-            horizontalAlignment: Text.AlignHCenter
-        }
-
-        RowLayout {
-            visible: root.currentProvider === "openai-compatible"
-            Layout.fillWidth: true
-
-            PlasmaComponents.Label {
-                text: root.openaiCompatibleModelName || "OpenAI Compatible"
-                Layout.alignment: Qt.AlignHCenter
+            Component.onCompleted: {
+                updateCurrentIndex()
             }
 
-            Item { Layout.fillWidth: true }
-
-            PlasmaComponents.CheckBox {
-                id: thinkingCheckbox
-                text: i18n("Thinking")
-                checked: root.thinkingEnabled
-                onCheckedChanged: {
-                    if (checked !== root.thinkingEnabled) {
-                        Plasmoid.configuration.openaiCompatibleDisableThinking = !checked
-                        root.thinkingEnabled = checked
+            function updateCurrentIndex() {
+                var items = itemsModel
+                for (var i = 0; i < items.length; i++) {
+                    if (items[i].provider === root.currentProvider) {
+                        if (root.currentProvider === "ollama" && items[i].model === root.currentModel) {
+                            currentIndex = i
+                            return
+                        } else if (root.currentProvider !== "ollama") {
+                            currentIndex = i
+                            return
+                        }
                     }
                 }
-
-                PlasmaComponents.ToolTip.text: i18n("Toggle thinking/reasoning mode. Disable for faster responses.")
-                PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
-                PlasmaComponents.ToolTip.visible: hovered
             }
+
+            Connections {
+                target: root
+                function onCurrentProviderChanged() { providerComboBox.updateCurrentIndex() }
+                function onCurrentModelChanged() { providerComboBox.updateCurrentIndex() }
+                function onOllamaModelsChanged() { providerComboBox.itemsModel = root.buildProviderModel() }
+                function onEnableOllamaChanged() { providerComboBox.itemsModel = root.buildProviderModel() }
+                function onEnableOpenClawChanged() { providerComboBox.itemsModel = root.buildProviderModel() }
+                function onEnableOpenAICompatibleChanged() { providerComboBox.itemsModel = root.buildProviderModel() }
+                function onOpenaiCompatibleModelNameChanged() { providerComboBox.itemsModel = root.buildProviderModel() }
+            }
+        }
+
+        PlasmaComponents.CheckBox {
+            visible: root.currentProvider === "openai-compatible"
+            text: i18n("Thinking")
+            checked: root.thinkingEnabled
+            onCheckedChanged: {
+                if (checked !== root.thinkingEnabled) {
+                    Plasmoid.configuration.openaiCompatibleDisableThinking = !checked
+                    root.thinkingEnabled = checked
+                }
+            }
+
+            PlasmaComponents.ToolTip.text: i18n("Toggle thinking/reasoning mode. Disable for faster responses.")
+            PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
+            PlasmaComponents.ToolTip.visible: hovered
         }
 
         PlasmaComponents.ToolButton {
             id: pinButton
             checkable: true
-            checked: Plasmoid.configuration.pin
+            checked: Plasmoid.configuration.pin || false
             onToggled: Plasmoid.configuration.pin = checked
             icon.name: "window-pin"
 

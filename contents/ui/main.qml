@@ -18,28 +18,55 @@ PlasmoidItem {
     id: root
 
     property string parentMessageId: ''
-    property string modelsComboboxCurrentValue: ''
+    property string currentModel: ''
     property var listModelController;
     property var promptArray: [];
-    property var modelsArray: [];
+    property var ollamaModels: [];
     property bool isLoading: false
     property bool hasLocalModel: false;
     property bool disableAutoScroll: false;
     property string currentProvider: Plasmoid.configuration.provider || "ollama"
-    property bool thinkingEnabled: !Plasmoid.configuration.openaiCompatibleDisableThinking
+    property bool thinkingEnabled: !(Plasmoid.configuration.openaiCompatibleDisableThinking || false)
+
+    property bool enableOllama: Plasmoid.configuration.enableOllama !== false
+    property bool enableOpenClaw: Plasmoid.configuration.enableOpenClaw === true
+    property bool enableOpenAICompatible: Plasmoid.configuration.enableOpenAICompatible === true
 
     function isProviderConfigured() {
-        const provider = currentProvider;
-        if (provider === "ollama") {
+        if (!isProviderEnabled(currentProvider)) {
+            return false;
+        }
+        if (currentProvider === "ollama") {
             return hasLocalModel;
-        } else if (provider === "openclaw") {
+        } else if (currentProvider === "openclaw") {
             return Plasmoid.configuration.openclawUrl && Plasmoid.configuration.openclawToken;
-        } else if (provider === "openai-compatible") {
+        } else if (currentProvider === "openai-compatible") {
             return Plasmoid.configuration.openaiCompatibleUrl &&
                    Plasmoid.configuration.openaiCompatibleToken &&
                    Plasmoid.configuration.openaiCompatibleModel;
         }
         return false;
+    }
+
+    function isProviderEnabled(provider) {
+        if (provider === "ollama") return enableOllama;
+        if (provider === "openclaw") return enableOpenClaw;
+        if (provider === "openai-compatible") return enableOpenAICompatible;
+        return false;
+    }
+
+    function getFirstAvailableProvider() {
+        if (enableOpenClaw && Plasmoid.configuration.openclawUrl && Plasmoid.configuration.openclawToken) {
+            return "openclaw";
+        }
+        if (enableOpenAICompatible && Plasmoid.configuration.openaiCompatibleUrl &&
+            Plasmoid.configuration.openaiCompatibleToken && Plasmoid.configuration.openaiCompatibleModel) {
+            return "openai-compatible";
+        }
+        if (enableOllama && hasLocalModel) {
+            return "ollama";
+        }
+        return "ollama";
     }
 
     function getProviderNotConfiguredMessage() {
@@ -95,7 +122,7 @@ PlasmoidItem {
 
         if (currentProvider === "ollama") {
             ApiClient.requestOllama(
-                modelsComboboxCurrentValue,
+                currentModel,
                 promptArray,
                 listModel,
                 handleStreaming,
@@ -135,8 +162,8 @@ PlasmoidItem {
             function(models) {
                 if (models.length) {
                     hasLocalModel = true;
-                    modelsComboboxCurrentValue = models[0];
-                    modelsArray = models.map(model => ({
+                    currentModel = models[0];
+                    ollamaModels = models.map(model => ({
                         text: ApiClient.parseTextToComboBox(model),
                         value: model
                     }));
@@ -148,10 +175,19 @@ PlasmoidItem {
         );
     }
 
-    Component.onCompleted: {
-        if (currentProvider === "ollama") {
+    function initializeProvider() {
+        if (!isProviderEnabled(currentProvider)) {
+            currentProvider = getFirstAvailableProvider();
+            Plasmoid.configuration.provider = currentProvider;
+        }
+
+        if (currentProvider === "ollama" && enableOllama) {
             getModels();
         }
+    }
+
+    Component.onCompleted: {
+        initializeProvider();
     }
 
     Plasmoid.contextualActions: [
@@ -159,7 +195,7 @@ PlasmoidItem {
             text: i18n("Keep Open")
             icon.name: "window-pin"
             checkable: true
-            checked: Plasmoid.configuration.pin
+            checked: Plasmoid.configuration.pin || false
             onTriggered: Plasmoid.configuration.pin = checked
         },
         PlasmaCore.Action {
@@ -190,23 +226,28 @@ PlasmoidItem {
         Header {
             id: header
 
-            isProviderConfigured: root.isProviderConfigured()
             isLoading: root.isLoading
             currentProvider: root.currentProvider
-            hasLocalModel: root.hasLocalModel
-            modelsArray: root.modelsArray
-            modelsComboboxCurrentValue: root.modelsComboboxCurrentValue
+            currentModel: root.currentModel
+            ollamaModels: root.ollamaModels
+            enableOllama: root.enableOllama
+            enableOpenClaw: root.enableOpenClaw
+            enableOpenAICompatible: root.enableOpenAICompatible
+            openaiCompatibleModelName: Plasmoid.configuration.openaiCompatibleModel
             thinkingEnabled: root.thinkingEnabled
             listModelController: root.listModelController
-            openaiCompatibleModelName: Plasmoid.configuration.openaiCompatibleModel
 
             onClearChatRequested: {
                 listModelController.clear();
                 promptArray = [];
             }
 
-            onModelSelected: function(modelValue) {
-                root.modelsComboboxCurrentValue = modelValue;
+            onProviderSelected: function(provider, model) {
+                root.currentProvider = provider;
+                Plasmoid.configuration.provider = provider;
+                if (provider === "ollama") {
+                    root.currentModel = model;
+                }
                 listModelController.clear();
             }
         }
@@ -268,7 +309,7 @@ PlasmoidItem {
             Layout.fillWidth: true
 
             text: i18n("Refresh models list")
-            visible: currentProvider === "ollama" && !hasLocalModel
+            visible: enableOllama && currentProvider === "ollama" && !hasLocalModel
 
             onClicked: getModels()
         }

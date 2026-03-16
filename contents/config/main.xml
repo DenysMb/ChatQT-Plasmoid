@@ -10,6 +10,18 @@
       <label>Icon style: filled-adaptive, outlined-adaptive, filled-dark, filled-light, outlined-dark, outlined-light</label>
       <default>filled-adaptive</default>
     </entry>
+    <entry name="enableOllama" type="Bool">
+      <label>Enable Ollama provider</label>
+      <default>true</default>
+    </entry>
+    <entry name="enableOpenClaw" type="Bool">
+      <label>Enable OpenClaw provider</label>
+      <default>false</default>
+    </entry>
+    <entry name="enableOpenAICompatible" type="Bool">
+      <label>Enable OpenAI Compatible provider</label>
+      <default>false</default>
+    </entry>
     <entry name="provider" type="String">
       <label>AI Provider: ollama, openclaw, openai-compatible</label>
       <default>ollama</default>
@@ -36,6 +48,10 @@
     </entry>
     <entry name="openaiCompatibleDisableThinking" type="Bool">
       <label>Disable thinking/reasoning for OpenAI Compatible</label>
+      <default>false</default>
+    </entry>
+    <entry name="pin" type="Bool">
+      <label>Keep widget open when clicking outside</label>
       <default>false</default>
     </entry>
   </group>
