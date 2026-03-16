@@ -10,13 +10,15 @@ import org.kde.kirigami as Kirigami
 import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.core as PlasmaCore
 import org.kde.plasma.plasmoid
-import org.kde.plasma.extras as PlasmaExtras
+
+import "components"
+import "logic/ApiClient.js" as ApiClient
 
 PlasmoidItem {
     id: root
 
     property string parentMessageId: ''
-    property string modelsComboboxCurrentValue: '';    
+    property string modelsComboboxCurrentValue: ''
     property var listModelController;
     property var promptArray: [];
     property var modelsArray: [];
@@ -33,8 +35,8 @@ PlasmoidItem {
         } else if (provider === "openclaw") {
             return Plasmoid.configuration.openclawUrl && Plasmoid.configuration.openclawToken;
         } else if (provider === "openai-compatible") {
-            return Plasmoid.configuration.openaiCompatibleUrl && 
-                   Plasmoid.configuration.openaiCompatibleToken && 
+            return Plasmoid.configuration.openaiCompatibleUrl &&
+                   Plasmoid.configuration.openaiCompatibleToken &&
                    Plasmoid.configuration.openaiCompatibleModel;
         }
         return false;
@@ -51,184 +53,32 @@ PlasmoidItem {
         return i18n("Provider not configured.");
     }
 
-    function preprocessMarkdown(text) {
-        return text
-            .replace(/^#{1,6}\s+(.+)$/gm, '**$1**')
-            .replace(/\*\*\*([^*]+)\*\*\*/g, '**$1**')
-            .replace(/___([^_]+)___/g, '*$1*');
-    }
+    function handleStreaming(text, oldLength, listModel) {
+        if (!disableAutoScroll && scrollView.ScrollBar) {
+            scrollView.ScrollBar.vertical.position = 1 - scrollView.ScrollBar.vertical.size;
+        }
 
-    function parseTextToComboBox(text) {
-        return text
-            .replace(/-/g, ' ')
-            .replace(/:(.+)/, ' ($1)')
-            .split(' ')
-            .map(word => {
-                if (word.startsWith('(')) {
-                    return word.charAt(0) + word.charAt(1).toUpperCase() + word.slice(2);
-                }
-                return word.charAt(0).toUpperCase() + word.slice(1);
-            })
-            .join(' ');
-    }
-
-    function requestOllama(messageField, listModel, scrollView, prompt) {
-        const oldLength = listModel.count;
-        const url = 'http://127.0.0.1:11434/api/chat';
-        const data = JSON.stringify({
-            "model": modelsComboboxCurrentValue,
-            "keep_alive": "5m",
-            "options": {},
-            "messages": promptArray
-        });
-        
-        let xhr = new XMLHttpRequest();
-
-        xhr.open('POST', url, true);
-        xhr.setRequestHeader('Content-Type', 'application/json');
-        xhr.onreadystatechange = function() {
-            const objects = xhr.responseText.split('\n');
-            let text = '';
-
-            objects.forEach((object, index) => {
-                try {
-                    const parsedObject = JSON.parse(object);
-                    text = text + (parsedObject?.message?.content || '');
-
-                    if (index === 0) {
-                        text = text.trim();
-                    }
-
-                    if (!disableAutoScroll && scrollView.ScrollBar) {
-                        scrollView.ScrollBar.vertical.position = 1 - scrollView.ScrollBar.vertical.size;
-                    }
-
-                    if (listModel.count === oldLength) {
-                        listModel.append({
-                            "name": "Assistant",
-                            "number": text
-                        });
-                    } else {
-                        const lastValue = listModel.get(oldLength);
-                        lastValue.number = text;
-                    }
-                } catch (e) {
-                    // Skip invalid JSON
-                }
+        if (listModel.count === oldLength) {
+            listModel.append({
+                "name": "Assistant",
+                "number": text
             });
-        };
-
-        xhr.onload = function() {
-            if (listModel.count > oldLength) {
-                const lastValue = listModel.get(oldLength);
-                promptArray.push({ "role": "assistant", "content": lastValue.number, "images": [] });
-            }
-            isLoading = false;
-        };
-
-        xhr.send(data);
+        } else {
+            const lastValue = listModel.get(oldLength);
+            lastValue.number = text;
+        }
     }
 
-    function requestOpenAICompatible(baseUrl, token, model, messageField, listModel, scrollView, prompt, extraHeaders, includeV1, thinkingEnabled) {
-        const oldLength = listModel.count;
-        let url = baseUrl.replace(/\/$/, '');
-        if (includeV1) {
-            url += '/v1';
+    function handleRequestComplete(oldLength, listModel) {
+        if (listModel.count > oldLength) {
+            const lastValue = listModel.get(oldLength);
+            promptArray.push({ "role": "assistant", "content": lastValue.number, "images": [] });
         }
-        url += '/chat/completions';
-        
-        let requestData = {
-            "model": model,
-            "messages": promptArray,
-            "stream": true
-        };
-        
-        if (!thinkingEnabled) {
-            requestData["chat_template_kwargs"] = {"enable_thinking": false};
-        }
-        
-        const data = JSON.stringify(requestData);
-        
-        let xhr = new XMLHttpRequest();
-
-        xhr.open('POST', url, true);
-        xhr.setRequestHeader('Content-Type', 'application/json');
-        xhr.setRequestHeader('Authorization', 'Bearer ' + token);
-        
-        if (extraHeaders) {
-            for (const [key, value] of Object.entries(extraHeaders)) {
-                xhr.setRequestHeader(key, value);
-            }
-        }
-
-        let text = '';
-        let processedLength = 0;
-
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState === XMLHttpRequest.LOADING || xhr.readyState === XMLHttpRequest.DONE) {
-                const response = xhr.responseText;
-                
-                if (response.length > processedLength) {
-                    const newChunk = response.substring(processedLength);
-                    processedLength = response.length;
-                    
-                    const lines = newChunk.split('\n');
-                    
-                    for (let i = 0; i < lines.length; i++) {
-                        const line = lines[i].trim();
-                        
-                        if (line.startsWith('data: ')) {
-                            const dataStr = line.substring(6);
-                            
-                            if (dataStr === '[DONE]') {
-                                continue;
-                            }
-                            
-                            try {
-                                const parsed = JSON.parse(dataStr);
-                                const choices = parsed.choices;
-                                if (choices && choices.length > 0) {
-                                    const delta = choices[0].delta;
-                                    if (delta && delta.content) {
-                                        text += delta.content;
-                                        
-                                        if (!disableAutoScroll && scrollView.ScrollBar) {
-                                            scrollView.ScrollBar.vertical.position = 1 - scrollView.ScrollBar.vertical.size;
-                                        }
-
-                                        if (listModel.count === oldLength) {
-                                            listModel.append({
-                                                "name": "Assistant",
-                                                "number": text
-                                            });
-                                        } else {
-                                            const lastValue = listModel.get(oldLength);
-                                            lastValue.number = text;
-                                        }
-                                    }
-                                }
-                            } catch (e) {
-                                // Skip invalid JSON
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (xhr.readyState === XMLHttpRequest.DONE) {
-                if (listModel.count > oldLength) {
-                    const lastValue = listModel.get(oldLength);
-                    promptArray.push({ "role": "assistant", "content": lastValue.number, "images": [] });
-                }
-                isLoading = false;
-            }
-        };
-
-        xhr.send(data);
+        isLoading = false;
     }
 
-    function request(messageField, listModel, scrollView, prompt) {
-        messageField.text = '';
+    function request(prompt) {
+        messageInput.clearText()
 
         listModel.append({
             "name": "User",
@@ -243,53 +93,59 @@ PlasmoidItem {
             scrollView.ScrollBar.vertical.position = 1;
         }
 
-        const provider = currentProvider;
-
-        if (provider === "ollama") {
-            requestOllama(messageField, listModel, scrollView, prompt);
-        } else if (provider === "openclaw") {
-            const url = Plasmoid.configuration.openclawUrl;
-            const token = Plasmoid.configuration.openclawToken;
-            requestOpenAICompatible(url, token, "openclaw", messageField, listModel, scrollView, prompt, {
-                "x-openclaw-agent-id": "main"
-            }, true, true);
-        } else if (provider === "openai-compatible") {
-            const url = Plasmoid.configuration.openaiCompatibleUrl;
-            const token = Plasmoid.configuration.openaiCompatibleToken;
-            const model = Plasmoid.configuration.openaiCompatibleModel;
-            requestOpenAICompatible(url, token, model, messageField, listModel, scrollView, prompt, null, false, thinkingEnabled);
+        if (currentProvider === "ollama") {
+            ApiClient.requestOllama(
+                modelsComboboxCurrentValue,
+                promptArray,
+                listModel,
+                handleStreaming,
+                handleRequestComplete
+            );
+        } else if (currentProvider === "openclaw") {
+            ApiClient.requestOpenAICompatible(
+                Plasmoid.configuration.openclawUrl,
+                Plasmoid.configuration.openclawToken,
+                "openclaw",
+                promptArray,
+                true,
+                { "x-openclaw-agent-id": "main" },
+                true,
+                listModel,
+                handleStreaming,
+                handleRequestComplete
+            );
+        } else if (currentProvider === "openai-compatible") {
+            ApiClient.requestOpenAICompatible(
+                Plasmoid.configuration.openaiCompatibleUrl,
+                Plasmoid.configuration.openaiCompatibleToken,
+                Plasmoid.configuration.openaiCompatibleModel,
+                promptArray,
+                thinkingEnabled,
+                null,
+                false,
+                listModel,
+                handleStreaming,
+                handleRequestComplete
+            );
         }
     }
 
     function getModels() {
-        const url = 'http://127.0.0.1:11434/api/tags';
-
-        let xhr = new XMLHttpRequest();
-
-        xhr.open('GET', url);
-        xhr.setRequestHeader('Content-Type', 'application/json');
-
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState === XMLHttpRequest.DONE) {
-                if (xhr.status === 200) {
-                    const objects = JSON.parse(xhr.responseText).models;
-                    
-                    const models = objects.map(object => object.model);
-
-                    if (models.length) {
-                        hasLocalModel = true;
-
-                        modelsComboboxCurrentValue = models[0];
-
-                        modelsArray = models.map(model => ({ text: parseTextToComboBox(model), value: model }));
-                    }
-                } else {
-                    console.error('Erro na requisição:', xhr.status, xhr.statusText);
+        ApiClient.getOllamaModels(
+            function(models) {
+                if (models.length) {
+                    hasLocalModel = true;
+                    modelsComboboxCurrentValue = models[0];
+                    modelsArray = models.map(model => ({
+                        text: ApiClient.parseTextToComboBox(model),
+                        value: model
+                    }));
                 }
+            },
+            function(status, statusText) {
+                console.error('Error fetching models:', status, statusText);
             }
-        };
-
-        xhr.send();
+        );
     }
 
     Component.onCompleted: {
@@ -331,94 +187,26 @@ PlasmoidItem {
         Layout.fillWidth: true
         Layout.fillHeight: true
 
-        PlasmaExtras.PlasmoidHeading {
-            width: parent.width
+        Header {
+            id: header
 
-            contentItem: RowLayout {
-                visible: isProviderConfigured()
-                Layout.fillWidth: true
-                
-                PlasmaComponents.ToolButton {
-                    icon.name: "edit-clear-history-symbolic"
-                    text: i18n("Clear chat")
-                    display: PlasmaComponents.AbstractButton.IconOnly
-                    enabled: isProviderConfigured() && !isLoading
-                    hoverEnabled: isProviderConfigured() && !isLoading
+            isProviderConfigured: root.isProviderConfigured()
+            isLoading: root.isLoading
+            currentProvider: root.currentProvider
+            hasLocalModel: root.hasLocalModel
+            modelsArray: root.modelsArray
+            modelsComboboxCurrentValue: root.modelsComboboxCurrentValue
+            thinkingEnabled: root.thinkingEnabled
+            listModelController: root.listModelController
 
-                    onClicked: {
-                        listModelController.clear();
-                    }
+            onClearChatRequested: {
+                listModelController.clear();
+                promptArray = [];
+            }
 
-                    PlasmaComponents.ToolTip.text: text
-                    PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
-                    PlasmaComponents.ToolTip.visible: hovered
-                }
-
-                PlasmaComponents.ComboBox {
-                    id: modelsCombobox
-                    visible: currentProvider === "ollama"
-                    enabled: hasLocalModel && !isLoading
-                    hoverEnabled: hasLocalModel && !isLoading
-
-                    Layout.fillWidth: true
-
-                    model: modelsArray.map(model => model.text)
-
-                    onActivated: {
-                        modelsComboboxCurrentValue = modelsArray.find(model => model.text === modelsCombobox.currentText).value;
-                        listModelController.clear();
-                    }
-                }
-
-                PlasmaComponents.Label {
-                    visible: currentProvider === "openclaw"
-                    Layout.fillWidth: true
-                    text: "OpenClaw"
-                    horizontalAlignment: Text.AlignHCenter
-                }
-
-                RowLayout {
-                    visible: currentProvider === "openai-compatible"
-                    Layout.fillWidth: true
-
-                    PlasmaComponents.Label {
-                        text: Plasmoid.configuration.openaiCompatibleModel || "OpenAI Compatible"
-                        Layout.alignment: Qt.AlignHCenter
-                    }
-
-                    Item { Layout.fillWidth: true }
-
-                    PlasmaComponents.CheckBox {
-                        id: thinkingCheckbox
-                        text: i18n("Thinking")
-                        checked: thinkingEnabled
-                        onCheckedChanged: {
-                            if (checked !== thinkingEnabled) {
-                                Plasmoid.configuration.openaiCompatibleDisableThinking = !checked
-                                thinkingEnabled = checked
-                            }
-                        }
-
-                        PlasmaComponents.ToolTip.text: i18n("Toggle thinking/reasoning mode. Disable for faster responses.")
-                        PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
-                        PlasmaComponents.ToolTip.visible: hovered
-                    }
-                }
-
-                PlasmaComponents.ToolButton {
-                    id: pinButton
-                    checkable: true
-                    checked: Plasmoid.configuration.pin
-                    onToggled: Plasmoid.configuration.pin = checked
-                    icon.name: "window-pin"
-
-                    display: PlasmaComponents.AbstractButton.IconOnly
-                    text: i18n("Keep Open")
-
-                    PlasmaComponents.ToolTip.text: text
-                    PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
-                    PlasmaComponents.ToolTip.visible: hovered
-                }
+            onModelSelected: function(modelValue) {
+                root.modelsComboboxCurrentValue = modelValue;
+                listModelController.clear();
             }
         }
 
@@ -441,7 +229,7 @@ PlasmoidItem {
                     anchors.centerIn: parent
                     width: parent.width - (Kirigami.Units.largeSpacing * 4)
                     visible: listView.count === 0
-                    text: isProviderConfigured() ? i18n("I am waiting for your questions...") : getProviderNotConfiguredMessage()
+                    text: root.isProviderConfigured() ? i18n("I am waiting for your questions...") : root.getProviderNotConfiguredMessage()
                 }
 
                 model: ListModel {
@@ -452,110 +240,35 @@ PlasmoidItem {
                     }
                 }
 
-                delegate: Kirigami.AbstractCard {
-                    Layout.fillWidth: true
-                    implicitHeight: 24 + textMessage.implicitHeight
-
-                    contentItem: TextEdit {
-                        id: textMessage
-
-                        topPadding: 8
-                        readOnly: true
-                        wrapMode: Text.WordWrap
-                        text: preprocessMarkdown(number)
-                        textFormat: TextEdit.MarkdownText
-                        color: name === "User" ? Kirigami.Theme.disabledTextColor : Kirigami.Theme.textColor
-                        selectByMouse: true
-                        onLinkActivated: function(link) {
-                            Qt.openUrlExternally(link)
-                        }
-
-                        PlasmaComponents.Button {
-                            anchors.right: parent.right
-
-                            icon.name: "edit-copy-symbolic"
-                            text: i18n("Copy")
-                            display: PlasmaComponents.AbstractButton.IconOnly
-                            visible: hoverHandler.hovered
-                            
-                            onClicked: {
-                                textMessage.selectAll();
-                                textMessage.copy();
-                                textMessage.deselect();
-                            }
-
-                            PlasmaComponents.ToolTip.text: text
-                            PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
-                            PlasmaComponents.ToolTip.visible: hovered
-                        }
-
-                        HoverHandler {
-                            id: hoverHandler
-                        }
-                    }
+                delegate: ChatMessage {
+                    messageText: ApiClient.preprocessMarkdown(number)
+                    senderName: name
                 }
             }
         }
 
-        ScrollView {
+        MessageInput {
+            id: messageInput
+
             Layout.fillWidth: true
-            Layout.preferredHeight: 100
-            clip: true
-            visible: isProviderConfigured()
 
-            TextArea {
-                id: messageField
+            isProviderConfigured: root.isProviderConfigured()
+            isLoading: root.isLoading
 
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-
-                enabled: isProviderConfigured() && !isLoading
-                hoverEnabled: isProviderConfigured() && !isLoading
-                placeholderText: i18n("Type here what you want to ask...")
-                wrapMode: TextArea.Wrap
-
-                Keys.onReturnPressed: {
-                    if (event.modifiers & Qt.ControlModifier) {
-                        request(messageField, listModel, scrollView, messageField.text);
-                    } else {
-                        event.accepted = false;
-                    }
+            onSendMessage: function(message) {
+                if (message.trim()) {
+                    root.request(message);
                 }
-
-                BusyIndicator {
-                    id: indicator
-                    anchors.centerIn: parent
-                    running: isLoading
-                }
-            }
-
-        }
-
-        Button {
-            Layout.alignment: Qt.AlignHCenter
-            Layout.fillWidth: true
-            
-            text: i18n("Send")
-            hoverEnabled: isProviderConfigured() && !isLoading
-            enabled: isProviderConfigured() && !isLoading
-            visible: isProviderConfigured()
-
-            ToolTip.delay: 1000
-            ToolTip.visible: hovered
-            ToolTip.text: "CTRL+Enter"
-            
-            onClicked: {
-                request(messageField, listModel, scrollView, messageField.text);
             }
         }
 
         Button {
             Layout.alignment: Qt.AlignHCenter
             Layout.fillWidth: true
-            
+
             text: i18n("Refresh models list")
             visible: currentProvider === "ollama" && !hasLocalModel
-            
+
             onClicked: getModels()
         }
     }
