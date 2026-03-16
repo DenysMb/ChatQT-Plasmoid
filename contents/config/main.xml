@@ -6,29 +6,13 @@
   <kcfgfile name=""/>
 
   <group name="General">
-    <entry name="useFilledIcon" type="Bool">
-      <label>Use the widget's filled icon</label>
-      <default>true</default>
+    <entry name="iconStyle" type="String">
+      <label>Icon style: filled-adaptive, outlined-adaptive, filled-dark, filled-light, outlined-dark, outlined-light</label>
+      <default>filled-adaptive</default>
     </entry>
-    <entry name="useOutlinedIcon" type="Bool">
-      <label>Use the widget's outlined icon</label>
-      <default>false</default>
-    </entry>
-    <entry name="useFilledLightIcon" type="Bool">
-      <label>Use the widget's filled light icon</label>
-      <default>false</default>
-    </entry>
-    <entry name="useFilledDarkIcon" type="Bool">
-      <label>Use the widget's filled dark icon</label>
-      <default>false</default>
-    </entry>
-    <entry name="useOutlinedLightIcon" type="Bool">
-      <label>Use the widget's outlined light icon</label>
-      <default>false</default>
-    </entry>
-    <entry name="useOutlinedDarkIcon" type="Bool">
-      <label>Use the widget's outlined dark icon</label>
-      <default>false</default>
+    <entry name="provider" type="String">
+      <label>AI Provider: ollama, openclaw, openai-compatible</label>
+      <default>ollama</default>
     </entry>
   </group>
 </kcfg>

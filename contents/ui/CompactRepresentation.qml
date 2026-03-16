@@ -1,53 +1,66 @@
 import QtQuick
-import QtQuick.Layouts 1.1
-import org.kde.kirigami 2.20 as Kirigami
-import org.kde.plasma.plasmoid 2.0
-import org.kde.plasma.core 2.0 as PlasmaCore
+import QtQuick.Layouts
+import org.kde.kirigami as Kirigami
+import org.kde.plasma.plasmoid
+import org.kde.plasma.core as PlasmaCore
 
-Loader {
-    property var models;
+Item {
+    id: compactRoot
 
-    TapHandler {
-        property bool wasExpanded: false
+    property var models: []
 
-        acceptedButtons: Qt.LeftButton
+    readonly property bool isVertical: plasmoid.formFactor === PlasmaCore.Types.Vertical
 
-        onPressedChanged: if (pressed) {
-            wasExpanded = root.expanded;
-        }
-        onTapped: root.expanded = !wasExpanded
+    Layout.minimumWidth: isVertical ? 0 : Kirigami.Units.iconSizes.large
+    Layout.minimumHeight: isVertical ? Kirigami.Units.iconSizes.large : 0
+
+    implicitWidth: Kirigami.Units.iconSizes.large
+    implicitHeight: Kirigami.Units.iconSizes.large
+
+    MouseArea {
+        id: mouseArea
+        anchors.fill: parent
+
+        onClicked: root.expanded = !root.expanded
     }
 
     Kirigami.Icon {
         anchors.fill: parent
-        source: Qt.resolvedUrl(getIcon())
+        source: getIconSource()
     }
 
-    function getIcon() {
+    function getIconSource() {
+        let icon = getIconPath();
+        if (icon.indexOf("/") !== -1 || icon.endsWith(".svg") || icon.endsWith(".png")) {
+            return Qt.resolvedUrl(icon);
+        }
+        return icon;
+    }
+
+    function getIconPath() {
+        const style = plasmoid.configuration.iconStyle || "filled-adaptive";
         const colorContrast = getBackgroundColorContrast();
 
-        if (Plasmoid.configuration.useFilledDarkIcon) {
-            return "assets/logo-filled-dark.svg";
-        } else if (Plasmoid.configuration.useFilledLightIcon) {
-            return "assets/logo-filled-light.svg";
-        } else if (Plasmoid.configuration.useOutlinedDarkIcon) {
-            return "assets/logo-outlined-dark.svg";
-        } else if (Plasmoid.configuration.useOutlinedLightIcon) {
-            return "assets/logo-outlined-light.svg";
-        } if (Plasmoid.configuration.useOutlinedIcon) {
-            return `assets/logo-outlined-${colorContrast}.svg`;
-        } else {
-            return `assets/logo-filled-${colorContrast}.svg`;
+        switch (style) {
+            case "filled-dark":
+                return "assets/logo-filled-dark.svg";
+            case "filled-light":
+                return "assets/logo-filled-light.svg";
+            case "outlined-dark":
+                return "assets/logo-outlined-dark.svg";
+            case "outlined-light":
+                return "assets/logo-outlined-light.svg";
+            case "outlined-adaptive":
+                return `assets/logo-outlined-${colorContrast}.svg`;
+            case "filled-adaptive":
+            default:
+                return `assets/logo-filled-${colorContrast}.svg`;
         }
     }
 
     function getBackgroundColorContrast() {
-        const hex = `${PlasmaCore.Theme.backgroundColor}`.substring(1);
-        const r = parseInt(hex.substring(0, 2), 16);
-        const g = parseInt(hex.substring(2, 4), 16);
-        const b = parseInt(hex.substring(4, 6), 16);
-        const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-        
-        return luma > 128 ? "dark" : "light";
+        const color = Kirigami.Theme.backgroundColor;
+        const luma = 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
+        return luma > 0.5 ? "dark" : "light";
     }
 }
