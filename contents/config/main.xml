@@ -34,5 +34,9 @@
       <label>OpenAI Compatible Model</label>
       <default></default>
     </entry>
+    <entry name="openaiCompatibleDisableThinking" type="Bool">
+      <label>Disable thinking/reasoning for OpenAI Compatible</label>
+      <default>false</default>
+    </entry>
   </group>
 </kcfg>

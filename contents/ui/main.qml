@@ -24,6 +24,7 @@ PlasmoidItem {
     property bool hasLocalModel: false;
     property bool disableAutoScroll: false;
     property string currentProvider: Plasmoid.configuration.provider || "ollama"
+    property bool thinkingEnabled: !Plasmoid.configuration.openaiCompatibleDisableThinking
 
     function isProviderConfigured() {
         const provider = currentProvider;
@@ -121,18 +122,25 @@ PlasmoidItem {
         xhr.send(data);
     }
 
-    function requestOpenAICompatible(baseUrl, token, model, messageField, listModel, scrollView, prompt, extraHeaders, includeV1) {
+    function requestOpenAICompatible(baseUrl, token, model, messageField, listModel, scrollView, prompt, extraHeaders, includeV1, thinkingEnabled) {
         const oldLength = listModel.count;
         let url = baseUrl.replace(/\/$/, '');
         if (includeV1) {
             url += '/v1';
         }
         url += '/chat/completions';
-        const data = JSON.stringify({
+        
+        let requestData = {
             "model": model,
             "messages": promptArray,
             "stream": true
-        });
+        };
+        
+        if (!thinkingEnabled) {
+            requestData["chat_template_kwargs"] = {"enable_thinking": false};
+        }
+        
+        const data = JSON.stringify(requestData);
         
         let xhr = new XMLHttpRequest();
 
@@ -237,12 +245,12 @@ PlasmoidItem {
             const token = Plasmoid.configuration.openclawToken;
             requestOpenAICompatible(url, token, "openclaw", messageField, listModel, scrollView, prompt, {
                 "x-openclaw-agent-id": "main"
-            }, true);
+            }, true, true);
         } else if (provider === "openai-compatible") {
             const url = Plasmoid.configuration.openaiCompatibleUrl;
             const token = Plasmoid.configuration.openaiCompatibleToken;
             const model = Plasmoid.configuration.openaiCompatibleModel;
-            requestOpenAICompatible(url, token, model, messageField, listModel, scrollView, prompt, null, false);
+            requestOpenAICompatible(url, token, model, messageField, listModel, scrollView, prompt, null, false, thinkingEnabled);
         }
     }
 
@@ -361,11 +369,32 @@ PlasmoidItem {
                     horizontalAlignment: Text.AlignHCenter
                 }
 
-                PlasmaComponents.Label {
+                RowLayout {
                     visible: currentProvider === "openai-compatible"
                     Layout.fillWidth: true
-                    text: Plasmoid.configuration.openaiCompatibleModel || "OpenAI Compatible"
-                    horizontalAlignment: Text.AlignHCenter
+
+                    PlasmaComponents.Label {
+                        text: Plasmoid.configuration.openaiCompatibleModel || "OpenAI Compatible"
+                        Layout.alignment: Qt.AlignHCenter
+                    }
+
+                    Item { Layout.fillWidth: true }
+
+                    PlasmaComponents.CheckBox {
+                        id: thinkingCheckbox
+                        text: i18n("Thinking")
+                        checked: thinkingEnabled
+                        onCheckedChanged: {
+                            if (checked !== thinkingEnabled) {
+                                Plasmoid.configuration.openaiCompatibleDisableThinking = !checked
+                                thinkingEnabled = checked
+                            }
+                        }
+
+                        PlasmaComponents.ToolTip.text: i18n("Toggle thinking/reasoning mode. Disable for faster responses.")
+                        PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
+                        PlasmaComponents.ToolTip.visible: hovered
+                    }
                 }
 
                 PlasmaComponents.Button {

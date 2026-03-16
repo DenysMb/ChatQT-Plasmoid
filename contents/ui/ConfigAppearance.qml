@@ -13,6 +13,7 @@ KCM.SimpleKCM {
     property string cfg_openaiCompatibleUrl: plasmoid.configuration.openaiCompatibleUrl
     property string cfg_openaiCompatibleToken: plasmoid.configuration.openaiCompatibleToken
     property string cfg_openaiCompatibleModel: plasmoid.configuration.openaiCompatibleModel
+    property bool cfg_openaiCompatibleDisableThinking: plasmoid.configuration.openaiCompatibleDisableThinking
 
     Kirigami.FormLayout {
         QQC2.ComboBox {
