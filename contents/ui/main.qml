@@ -39,6 +39,17 @@ PlasmoidItem {
         return false;
     }
 
+    function getProviderNotConfiguredMessage() {
+        if (currentProvider === "ollama") {
+            return i18n("No local model found.\nPlease install some first.\n\nIf you need help, check Ollama documentation.");
+        } else if (currentProvider === "openclaw") {
+            return i18n("OpenClaw not configured.\nPlease set URL and Token in settings.");
+        } else if (currentProvider === "openai-compatible") {
+            return i18n("OpenAI Compatible not configured.\nPlease set URL, Token and Model in settings.");
+        }
+        return i18n("Provider not configured.");
+    }
+
     function parseTextToComboBox(text) {
         return text
             .replace(/-/g, ' ')
@@ -132,53 +143,66 @@ PlasmoidItem {
         }
 
         let text = '';
-        let buffer = '';
+        let processedLength = 0;
 
-        xhr.onprogress = function() {
-            const response = xhr.responseText;
-            const lines = response.split('\n');
-            
-            for (let i = 0; i < lines.length; i++) {
-                const line = lines[i].trim();
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === XMLHttpRequest.LOADING || xhr.readyState === XMLHttpRequest.DONE) {
+                const response = xhr.responseText;
                 
-                if (line.startsWith('data: ')) {
-                    const dataStr = line.substring(6);
+                if (response.length > processedLength) {
+                    const newChunk = response.substring(processedLength);
+                    processedLength = response.length;
                     
-                    if (dataStr === '[DONE]') {
-                        continue;
-                    }
+                    const lines = newChunk.split('\n');
                     
-                    try {
-                        const parsed = JSON.parse(dataStr);
-                        const content = parsed?.choices?.[0]?.delta?.content || '';
-                        text += content;
+                    for (let i = 0; i < lines.length; i++) {
+                        const line = lines[i].trim();
                         
-                        if (!disableAutoScroll && scrollView.ScrollBar) {
-                            scrollView.ScrollBar.vertical.position = 1 - scrollView.ScrollBar.vertical.size;
-                        }
+                        if (line.startsWith('data: ')) {
+                            const dataStr = line.substring(6);
+                            
+                            if (dataStr === '[DONE]') {
+                                continue;
+                            }
+                            
+                            try {
+                                const parsed = JSON.parse(dataStr);
+                                const choices = parsed.choices;
+                                if (choices && choices.length > 0) {
+                                    const delta = choices[0].delta;
+                                    if (delta && delta.content) {
+                                        text += delta.content;
+                                        
+                                        if (!disableAutoScroll && scrollView.ScrollBar) {
+                                            scrollView.ScrollBar.vertical.position = 1 - scrollView.ScrollBar.vertical.size;
+                                        }
 
-                        if (listModel.count === oldLength) {
-                            listModel.append({
-                                "name": "Assistant",
-                                "number": text
-                            });
-                        } else {
-                            const lastValue = listModel.get(oldLength);
-                            lastValue.number = text;
+                                        if (listModel.count === oldLength) {
+                                            listModel.append({
+                                                "name": "Assistant",
+                                                "number": text
+                                            });
+                                        } else {
+                                            const lastValue = listModel.get(oldLength);
+                                            lastValue.number = text;
+                                        }
+                                    }
+                                }
+                            } catch (e) {
+                                // Skip invalid JSON
+                            }
                         }
-                    } catch (e) {
-                        // Skip invalid JSON
                     }
                 }
             }
-        };
 
-        xhr.onload = function() {
-            if (listModel.count > oldLength) {
-                const lastValue = listModel.get(oldLength);
-                promptArray.push({ "role": "assistant", "content": lastValue.number, "images": [] });
+            if (xhr.readyState === XMLHttpRequest.DONE) {
+                if (listModel.count > oldLength) {
+                    const lastValue = listModel.get(oldLength);
+                    promptArray.push({ "role": "assistant", "content": lastValue.number, "images": [] });
+                }
+                isLoading = false;
             }
-            isLoading = false;
         };
 
         xhr.send(data);
@@ -378,17 +402,6 @@ PlasmoidItem {
                     width: parent.width - (Kirigami.Units.largeSpacing * 4)
                     visible: listView.count === 0
                     text: isProviderConfigured() ? i18n("I am waiting for your questions...") : getProviderNotConfiguredMessage()
-                }
-
-                function getProviderNotConfiguredMessage() {
-                    if (currentProvider === "ollama") {
-                        return i18n("No local model found.\nPlease install some first.\n\nIf you need help, check Ollama documentation.");
-                    } else if (currentProvider === "openclaw") {
-                        return i18n("OpenClaw not configured.\nPlease set URL and Token in settings.");
-                    } else if (currentProvider === "openai-compatible") {
-                        return i18n("OpenAI Compatible not configured.\nPlease set URL, Token and Model in settings.");
-                    }
-                    return i18n("Provider not configured.");
                 }
 
                 model: ListModel {
