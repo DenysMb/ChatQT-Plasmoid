@@ -121,9 +121,13 @@ PlasmoidItem {
         xhr.send(data);
     }
 
-    function requestOpenAICompatible(baseUrl, token, model, messageField, listModel, scrollView, prompt, extraHeaders) {
+    function requestOpenAICompatible(baseUrl, token, model, messageField, listModel, scrollView, prompt, extraHeaders, includeV1) {
         const oldLength = listModel.count;
-        const url = baseUrl.replace(/\/$/, '') + '/v1/chat/completions';
+        let url = baseUrl.replace(/\/$/, '');
+        if (includeV1) {
+            url += '/v1';
+        }
+        url += '/chat/completions';
         const data = JSON.stringify({
             "model": model,
             "messages": promptArray,
@@ -233,12 +237,12 @@ PlasmoidItem {
             const token = Plasmoid.configuration.openclawToken;
             requestOpenAICompatible(url, token, "openclaw", messageField, listModel, scrollView, prompt, {
                 "x-openclaw-agent-id": "main"
-            });
+            }, true);
         } else if (provider === "openai-compatible") {
             const url = Plasmoid.configuration.openaiCompatibleUrl;
             const token = Plasmoid.configuration.openaiCompatibleToken;
             const model = Plasmoid.configuration.openaiCompatibleModel;
-            requestOpenAICompatible(url, token, model, messageField, listModel, scrollView, prompt);
+            requestOpenAICompatible(url, token, model, messageField, listModel, scrollView, prompt, null, false);
         }
     }
 
