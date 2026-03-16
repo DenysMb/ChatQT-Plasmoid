@@ -23,6 +23,21 @@ PlasmoidItem {
     property bool isLoading: false
     property bool hasLocalModel: false;
     property bool disableAutoScroll: false;
+    property string currentProvider: Plasmoid.configuration.provider || "ollama"
+
+    function isProviderConfigured() {
+        const provider = currentProvider;
+        if (provider === "ollama") {
+            return hasLocalModel;
+        } else if (provider === "openclaw") {
+            return Plasmoid.configuration.openclawUrl && Plasmoid.configuration.openclawToken;
+        } else if (provider === "openai-compatible") {
+            return Plasmoid.configuration.openaiCompatibleUrl && 
+                   Plasmoid.configuration.openaiCompatibleToken && 
+                   Plasmoid.configuration.openaiCompatibleModel;
+        }
+        return false;
+    }
 
     function parseTextToComboBox(text) {
         return text
@@ -38,22 +53,7 @@ PlasmoidItem {
             .join(' ');
     }
 
-    function request(messageField, listModel, scrollView, prompt) {
-        messageField.text = '';
-
-        listModel.append({
-            "name": "User",
-            "number": prompt
-        });
-
-        promptArray.push({ "role": "user", "content": prompt, "images": [] });
-
-        isLoading = true;
-
-        if (!disableAutoScroll && scrollView.ScrollBar) {
-            scrollView.ScrollBar.vertical.position = 1;
-        }
-
+    function requestOllama(messageField, listModel, scrollView, prompt) {
         const oldLength = listModel.count;
         const url = 'http://127.0.0.1:11434/api/chat';
         const data = JSON.stringify({
@@ -72,39 +72,150 @@ PlasmoidItem {
             let text = '';
 
             objects.forEach((object, index) => {
-                const parsedObject = JSON.parse(object);
-                text = text + parsedObject?.message?.content;
+                try {
+                    const parsedObject = JSON.parse(object);
+                    text = text + (parsedObject?.message?.content || '');
 
-                if (index === 0 ) {
-                    text = text.trim();
-                }
+                    if (index === 0) {
+                        text = text.trim();
+                    }
 
-                if (!disableAutoScroll && scrollView.ScrollBar) {
-                    scrollView.ScrollBar.vertical.position = 1 - scrollView.ScrollBar.vertical.size;
-                }
+                    if (!disableAutoScroll && scrollView.ScrollBar) {
+                        scrollView.ScrollBar.vertical.position = 1 - scrollView.ScrollBar.vertical.size;
+                    }
 
-                if (listModel.count === oldLength) {
-                    listModel.append({
-                        "name": "Assistant",
-                        "number": text
-                    });
-                } else {
-                    const lastValue = listModel.get(oldLength);
-
-                    lastValue.number = text;
+                    if (listModel.count === oldLength) {
+                        listModel.append({
+                            "name": "Assistant",
+                            "number": text
+                        });
+                    } else {
+                        const lastValue = listModel.get(oldLength);
+                        lastValue.number = text;
+                    }
+                } catch (e) {
+                    // Skip invalid JSON
                 }
             });
         };
 
         xhr.onload = function() {
-            const lastValue = listModel.get(oldLength);
-
+            if (listModel.count > oldLength) {
+                const lastValue = listModel.get(oldLength);
+                promptArray.push({ "role": "assistant", "content": lastValue.number, "images": [] });
+            }
             isLoading = false;
-
-            promptArray.push({ "role": "assistant", "content": lastValue.number, "images": [] });
         };
 
         xhr.send(data);
+    }
+
+    function requestOpenAICompatible(baseUrl, token, model, messageField, listModel, scrollView, prompt, extraHeaders) {
+        const oldLength = listModel.count;
+        const url = baseUrl.replace(/\/$/, '') + '/v1/chat/completions';
+        const data = JSON.stringify({
+            "model": model,
+            "messages": promptArray,
+            "stream": true
+        });
+        
+        let xhr = new XMLHttpRequest();
+
+        xhr.open('POST', url, true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+        
+        if (extraHeaders) {
+            for (const [key, value] of Object.entries(extraHeaders)) {
+                xhr.setRequestHeader(key, value);
+            }
+        }
+
+        let text = '';
+        let buffer = '';
+
+        xhr.onprogress = function() {
+            const response = xhr.responseText;
+            const lines = response.split('\n');
+            
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                
+                if (line.startsWith('data: ')) {
+                    const dataStr = line.substring(6);
+                    
+                    if (dataStr === '[DONE]') {
+                        continue;
+                    }
+                    
+                    try {
+                        const parsed = JSON.parse(dataStr);
+                        const content = parsed?.choices?.[0]?.delta?.content || '';
+                        text += content;
+                        
+                        if (!disableAutoScroll && scrollView.ScrollBar) {
+                            scrollView.ScrollBar.vertical.position = 1 - scrollView.ScrollBar.vertical.size;
+                        }
+
+                        if (listModel.count === oldLength) {
+                            listModel.append({
+                                "name": "Assistant",
+                                "number": text
+                            });
+                        } else {
+                            const lastValue = listModel.get(oldLength);
+                            lastValue.number = text;
+                        }
+                    } catch (e) {
+                        // Skip invalid JSON
+                    }
+                }
+            }
+        };
+
+        xhr.onload = function() {
+            if (listModel.count > oldLength) {
+                const lastValue = listModel.get(oldLength);
+                promptArray.push({ "role": "assistant", "content": lastValue.number, "images": [] });
+            }
+            isLoading = false;
+        };
+
+        xhr.send(data);
+    }
+
+    function request(messageField, listModel, scrollView, prompt) {
+        messageField.text = '';
+
+        listModel.append({
+            "name": "User",
+            "number": prompt
+        });
+
+        promptArray.push({ "role": "user", "content": prompt, "images": [] });
+
+        isLoading = true;
+
+        if (!disableAutoScroll && scrollView.ScrollBar) {
+            scrollView.ScrollBar.vertical.position = 1;
+        }
+
+        const provider = currentProvider;
+
+        if (provider === "ollama") {
+            requestOllama(messageField, listModel, scrollView, prompt);
+        } else if (provider === "openclaw") {
+            const url = Plasmoid.configuration.openclawUrl;
+            const token = Plasmoid.configuration.openclawToken;
+            requestOpenAICompatible(url, token, "openclaw", messageField, listModel, scrollView, prompt, {
+                "x-openclaw-agent-id": "main"
+            });
+        } else if (provider === "openai-compatible") {
+            const url = Plasmoid.configuration.openaiCompatibleUrl;
+            const token = Plasmoid.configuration.openaiCompatibleToken;
+            const model = Plasmoid.configuration.openaiCompatibleModel;
+            requestOpenAICompatible(url, token, model, messageField, listModel, scrollView, prompt);
+        }
     }
 
     function getModels() {
@@ -136,6 +247,12 @@ PlasmoidItem {
         };
 
         xhr.send();
+    }
+
+    Component.onCompleted: {
+        if (currentProvider === "ollama") {
+            getModels();
+        }
     }
 
     Plasmoid.contextualActions: [
@@ -175,7 +292,7 @@ PlasmoidItem {
             width: parent.width
 
             contentItem: RowLayout {
-                visible: hasLocalModel
+                visible: isProviderConfigured()
                 Layout.fillWidth: true
 
                 PlasmaComponents.Button {
@@ -195,6 +312,7 @@ PlasmoidItem {
 
                 PlasmaComponents.ComboBox {
                     id: modelsCombobox
+                    visible: currentProvider === "ollama"
                     enabled: hasLocalModel && !isLoading
                     hoverEnabled: hasLocalModel && !isLoading
 
@@ -206,16 +324,28 @@ PlasmoidItem {
                         modelsComboboxCurrentValue = modelsArray.find(model => model.text === modelsCombobox.currentText).value;
                         listModelController.clear();
                     }
+                }
 
-                    Component.onCompleted: getModels()
+                PlasmaComponents.Label {
+                    visible: currentProvider === "openclaw"
+                    Layout.fillWidth: true
+                    text: "OpenClaw"
+                    horizontalAlignment: Text.AlignHCenter
+                }
+
+                PlasmaComponents.Label {
+                    visible: currentProvider === "openai-compatible"
+                    Layout.fillWidth: true
+                    text: Plasmoid.configuration.openaiCompatibleModel || "OpenAI Compatible"
+                    horizontalAlignment: Text.AlignHCenter
                 }
 
                 PlasmaComponents.Button {
                     icon.name: "edit-clear-symbolic"
                     text: i18n("Clear chat")
                     display: PlasmaComponents.AbstractButton.IconOnly
-                    enabled: hasLocalModel && !isLoading
-                    hoverEnabled: hasLocalModel && !isLoading
+                    enabled: isProviderConfigured() && !isLoading
+                    hoverEnabled: isProviderConfigured() && !isLoading
 
                     onClicked: {
                         listModelController.clear();
@@ -247,7 +377,18 @@ PlasmoidItem {
                     anchors.centerIn: parent
                     width: parent.width - (Kirigami.Units.largeSpacing * 4)
                     visible: listView.count === 0
-                    text: hasLocalModel ? i18n("I am waiting for your questions...") : i18n("No local model found.\nPlease install some first.\n\nIf you need help, check Ollama documentation.")
+                    text: isProviderConfigured() ? i18n("I am waiting for your questions...") : getProviderNotConfiguredMessage()
+                }
+
+                function getProviderNotConfiguredMessage() {
+                    if (currentProvider === "ollama") {
+                        return i18n("No local model found.\nPlease install some first.\n\nIf you need help, check Ollama documentation.");
+                    } else if (currentProvider === "openclaw") {
+                        return i18n("OpenClaw not configured.\nPlease set URL and Token in settings.");
+                    } else if (currentProvider === "openai-compatible") {
+                        return i18n("OpenAI Compatible not configured.\nPlease set URL, Token and Model in settings.");
+                    }
+                    return i18n("Provider not configured.");
                 }
 
                 model: ListModel {
@@ -303,7 +444,7 @@ PlasmoidItem {
             Layout.fillWidth: true
             Layout.preferredHeight: 100
             clip: true
-            visible: hasLocalModel
+            visible: isProviderConfigured()
 
             TextArea {
                 id: messageField
@@ -311,8 +452,8 @@ PlasmoidItem {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
 
-                enabled: hasLocalModel && !isLoading
-                hoverEnabled: hasLocalModel && !isLoading
+                enabled: isProviderConfigured() && !isLoading
+                hoverEnabled: isProviderConfigured() && !isLoading
                 placeholderText: i18n("Type here what you want to ask...")
                 wrapMode: TextArea.Wrap
 
@@ -338,9 +479,9 @@ PlasmoidItem {
             Layout.fillWidth: true
             
             text: i18n("Send")
-            hoverEnabled: hasLocalModel && !isLoading
-            enabled: hasLocalModel && !isLoading
-            visible: hasLocalModel
+            hoverEnabled: isProviderConfigured() && !isLoading
+            enabled: isProviderConfigured() && !isLoading
+            visible: isProviderConfigured()
 
             ToolTip.delay: 1000
             ToolTip.visible: hovered
@@ -356,7 +497,7 @@ PlasmoidItem {
             Layout.fillWidth: true
             
             text: i18n("Refresh models list")
-            visible: !hasLocalModel
+            visible: currentProvider === "ollama" && !hasLocalModel
             
             onClicked: getModels()
         }
