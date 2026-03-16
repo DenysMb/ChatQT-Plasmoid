@@ -24,6 +24,7 @@ PlasmaExtras.PlasmoidHeading {
     property var modelsComboboxCurrentValue: ""
     property bool thinkingEnabled: true
     property var listModelController: null
+    property string openaiCompatibleModelName: ""
 
     width: parent.width
 
@@ -75,7 +76,7 @@ PlasmaExtras.PlasmoidHeading {
             Layout.fillWidth: true
 
             PlasmaComponents.Label {
-                text: Plasmoid.configuration.openaiCompatibleModel || "OpenAI Compatible"
+                text: root.openaiCompatibleModelName || "OpenAI Compatible"
                 Layout.alignment: Qt.AlignHCenter
             }
 

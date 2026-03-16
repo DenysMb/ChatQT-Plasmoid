@@ -198,6 +198,7 @@ PlasmoidItem {
             modelsComboboxCurrentValue: root.modelsComboboxCurrentValue
             thinkingEnabled: root.thinkingEnabled
             listModelController: root.listModelController
+            openaiCompatibleModelName: Plasmoid.configuration.openaiCompatibleModel
 
             onClearChatRequested: {
                 listModelController.clear();
