@@ -8,6 +8,14 @@ Item {
     id: compactRoot
 
     property var models: []
+    
+    readonly property bool isVertical: plasmoid.formFactor === PlasmaCore.Types.Vertical
+
+    Layout.minimumWidth: isVertical ? 0 : Kirigami.Units.iconSizes.medium
+    Layout.minimumHeight: isVertical ? Kirigami.Units.iconSizes.medium : 0
+
+    implicitWidth: Kirigami.Units.iconSizes.medium
+    implicitHeight: Kirigami.Units.iconSizes.medium
 
     MouseArea {
         id: mouseArea
