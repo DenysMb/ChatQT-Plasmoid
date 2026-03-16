@@ -56,12 +56,12 @@ KCM.SimpleKCM {
             textRole: "text"
             valueRole: "value"
 
-            onCurrentValueChanged: {
-                cfg_provider = currentValue
-            }
-
             Component.onCompleted: {
                 currentIndex = indexOfValue(cfg_provider || "ollama")
+            }
+
+            onActivated: {
+                cfg_provider = currentValue
             }
         }
 
