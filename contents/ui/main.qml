@@ -456,8 +456,12 @@ PlasmoidItem {
                         readOnly: true
                         wrapMode: Text.WordWrap
                         text: number
+                        textFormat: TextEdit.MarkdownText
                         color: name === "User" ? Kirigami.Theme.disabledTextColor : Kirigami.Theme.textColor
                         selectByMouse: true
+                        onLinkActivated: function(link) {
+                            Qt.openUrlExternally(link)
+                        }
 
                         PlasmaComponents.Button {
                             anchors.right: parent.right
