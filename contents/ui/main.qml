@@ -51,6 +51,13 @@ PlasmoidItem {
         return i18n("Provider not configured.");
     }
 
+    function preprocessMarkdown(text) {
+        return text
+            .replace(/^#{1,6}\s+(.+)$/gm, '**$1**')
+            .replace(/\*\*\*([^*]+)\*\*\*/g, '**$1**')
+            .replace(/___([^_]+)___/g, '*$1*');
+    }
+
     function parseTextToComboBox(text) {
         return text
             .replace(/-/g, ' ')
@@ -455,7 +462,7 @@ PlasmoidItem {
                         topPadding: 8
                         readOnly: true
                         wrapMode: Text.WordWrap
-                        text: number
+                        text: preprocessMarkdown(number)
                         textFormat: TextEdit.MarkdownText
                         color: name === "User" ? Kirigami.Theme.disabledTextColor : Kirigami.Theme.textColor
                         selectByMouse: true
