@@ -14,23 +14,18 @@ import org.kde.kcmutils as KCM
 KCM.SimpleKCM {
     id: root
 
-    property alias cfg_openclawUrl: openclawUrlField.text
-    property alias cfg_openclawToken: openclawTokenField.text
+    property string cfg_openclawUrl: Plasmoid.configuration.openclawUrl
+    property string cfg_openclawToken: Plasmoid.configuration.openclawToken
 
     Kirigami.FormLayout {
-        anchors.left: parent.left
-        anchors.right: parent.right
-
-        Kirigami.Separator {
-            Kirigami.FormData.label: i18nc("@title:group", "OpenClaw Configuration")
-            Kirigami.FormData.isSection: true
-        }
-
         QQC2.TextField {
             id: openclawUrlField
 
-            Kirigami.FormData.label: i18nc("@title:group", "URL:")
-            text: plasmoid.configuration.openclawUrl || ""
+            Kirigami.FormData.label: i18nc("@label:textbox", "URL:")
+
+            Layout.fillWidth: true
+            text: cfg_openclawUrl
+            onTextChanged: cfg_openclawUrl = text
             placeholderText: "http://127.0.0.1:18789"
         }
 
@@ -38,13 +33,18 @@ KCM.SimpleKCM {
             text: i18nc("@info", "The URL of your OpenClaw instance")
             font: Kirigami.Theme.smallFont
             color: Kirigami.Theme.disabledTextColor
+            wrapMode: Text.WordWrap
+            Layout.fillWidth: true
         }
 
         QQC2.TextField {
             id: openclawTokenField
 
-            Kirigami.FormData.label: i18nc("@title:group", "Token:")
-            text: plasmoid.configuration.openclawToken || ""
+            Kirigami.FormData.label: i18nc("@label:textbox", "Token:")
+
+            Layout.fillWidth: true
+            text: cfg_openclawToken
+            onTextChanged: cfg_openclawToken = text
             placeholderText: i18nc("@info:placeholder", "Enter your token")
             echoMode: QQC2.TextField.Password
         }
@@ -53,6 +53,8 @@ KCM.SimpleKCM {
             text: i18nc("@info", "Authentication token for OpenClaw")
             font: Kirigami.Theme.smallFont
             color: Kirigami.Theme.disabledTextColor
+            wrapMode: Text.WordWrap
+            Layout.fillWidth: true
         }
     }
 }

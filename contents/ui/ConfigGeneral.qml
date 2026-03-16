@@ -14,25 +14,19 @@ import org.kde.kcmutils as KCM
 KCM.SimpleKCM {
     id: root
 
-    property alias cfg_enableOllama: enableOllamaCheckBox.checked
-    property alias cfg_enableOpenClaw: enableOpenClawCheckBox.checked
-    property alias cfg_enableOpenAICompatible: enableOpenAICompatibleCheckBox.checked
+    property bool cfg_enableOllama: Plasmoid.configuration.enableOllama
+    property bool cfg_enableOpenClaw: Plasmoid.configuration.enableOpenClaw
+    property bool cfg_enableOpenAICompatible: Plasmoid.configuration.enableOpenAICompatible
 
     Kirigami.FormLayout {
-        anchors.left: parent.left
-        anchors.right: parent.right
-
-        Kirigami.Separator {
-            Kirigami.FormData.label: i18nc("@title:group", "Providers")
-            Kirigami.FormData.isSection: true
-        }
-
         QQC2.CheckBox {
             id: enableOllamaCheckBox
 
             Kirigami.FormData.label: i18nc("@title:group", "Ollama:")
+
             text: i18nc("@option:check", "Enable")
-            checked: plasmoid.configuration.enableOllama !== false
+            checked: cfg_enableOllama
+            onCheckedChanged: cfg_enableOllama = checked
         }
 
         QQC2.Label {
@@ -47,8 +41,10 @@ KCM.SimpleKCM {
             id: enableOpenClawCheckBox
 
             Kirigami.FormData.label: i18nc("@title:group", "OpenClaw:")
+
             text: i18nc("@option:check", "Enable")
-            checked: plasmoid.configuration.enableOpenClaw === true
+            checked: cfg_enableOpenClaw
+            onCheckedChanged: cfg_enableOpenClaw = checked
         }
 
         QQC2.Label {
@@ -63,8 +59,10 @@ KCM.SimpleKCM {
             id: enableOpenAICompatibleCheckBox
 
             Kirigami.FormData.label: i18nc("@title:group", "OpenAI Compatible:")
+
             text: i18nc("@option:check", "Enable")
-            checked: plasmoid.configuration.enableOpenAICompatible === true
+            checked: cfg_enableOpenAICompatible
+            onCheckedChanged: cfg_enableOpenAICompatible = checked
         }
 
         QQC2.Label {

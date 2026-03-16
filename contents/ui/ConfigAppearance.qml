@@ -14,29 +14,23 @@ import org.kde.kcmutils as KCM
 KCM.SimpleKCM {
     id: root
 
-    property string cfg_iconStyle: plasmoid.configuration.iconStyle
+    property string cfg_iconStyle: Plasmoid.configuration.iconStyle
 
     Kirigami.FormLayout {
-        anchors.left: parent.left
-        anchors.right: parent.right
-
-        Kirigami.Separator {
-            Kirigami.FormData.label: i18nc("@title:group", "Icon")
-            Kirigami.FormData.isSection: true
-        }
-
         QQC2.ComboBox {
             id: iconStyleComboBox
 
-            Kirigami.FormData.label: i18nc("@title:group", "Icon style:")
+            Kirigami.FormData.label: i18nc("@label:listbox", "Icon style:")
+
+            Layout.fillWidth: true
 
             model: [
-                { text: i18nc("@option:combobox", "Filled adaptive"), value: "filled-adaptive" },
-                { text: i18nc("@option:combobox", "Outlined adaptive"), value: "outlined-adaptive" },
-                { text: i18nc("@option:combobox", "Filled dark"), value: "filled-dark" },
-                { text: i18nc("@option:combobox", "Filled light"), value: "filled-light" },
-                { text: i18nc("@option:combobox", "Outlined dark"), value: "outlined-dark" },
-                { text: i18nc("@option:combobox", "Outlined light"), value: "outlined-light" }
+                { text: i18nc("@item:inlistbox", "Filled adaptive"), value: "filled-adaptive" },
+                { text: i18nc("@item:inlistbox", "Outlined adaptive"), value: "outlined-adaptive" },
+                { text: i18nc("@item:inlistbox", "Filled dark"), value: "filled-dark" },
+                { text: i18nc("@item:inlistbox", "Filled light"), value: "filled-light" },
+                { text: i18nc("@item:inlistbox", "Outlined dark"), value: "outlined-dark" },
+                { text: i18nc("@item:inlistbox", "Outlined light"), value: "outlined-light" }
             ]
 
             textRole: "text"
@@ -46,7 +40,7 @@ KCM.SimpleKCM {
                 currentIndex = indexOfValue(cfg_iconStyle || "filled-adaptive")
             }
 
-            onActivated: {
+            onActivated: function(index) {
                 cfg_iconStyle = currentValue
             }
         }
