@@ -9,14 +9,6 @@ Item {
 
     property var models: []
 
-    readonly property bool isVertical: plasmoid.formFactor === PlasmaCore.Types.Vertical
-
-    Layout.minimumWidth: isVertical ? 0 : Kirigami.Units.iconSizes.large
-    Layout.minimumHeight: isVertical ? Kirigami.Units.iconSizes.large : 0
-
-    implicitWidth: Kirigami.Units.iconSizes.large
-    implicitHeight: Kirigami.Units.iconSizes.large
-
     MouseArea {
         id: mouseArea
         anchors.fill: parent
