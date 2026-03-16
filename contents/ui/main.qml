@@ -337,16 +337,17 @@ PlasmoidItem {
             contentItem: RowLayout {
                 visible: isProviderConfigured()
                 Layout.fillWidth: true
-
-                PlasmaComponents.Button {
-                    id: pinButton
-                    checkable: true
-                    checked: Plasmoid.configuration.pin
-                    onToggled: Plasmoid.configuration.pin = checked
-                    icon.name: "window-pin"
-
+                
+                PlasmaComponents.ToolButton {
+                    icon.name: "edit-clear-history-symbolic"
+                    text: i18n("Clear chat")
                     display: PlasmaComponents.AbstractButton.IconOnly
-                    text: i18n("Keep Open")
+                    enabled: isProviderConfigured() && !isLoading
+                    hoverEnabled: isProviderConfigured() && !isLoading
+
+                    onClicked: {
+                        listModelController.clear();
+                    }
 
                     PlasmaComponents.ToolTip.text: text
                     PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
@@ -404,16 +405,15 @@ PlasmoidItem {
                     }
                 }
 
-                PlasmaComponents.Button {
-                    icon.name: "edit-clear-symbolic"
-                    text: i18n("Clear chat")
-                    display: PlasmaComponents.AbstractButton.IconOnly
-                    enabled: isProviderConfigured() && !isLoading
-                    hoverEnabled: isProviderConfigured() && !isLoading
+                PlasmaComponents.ToolButton {
+                    id: pinButton
+                    checkable: true
+                    checked: Plasmoid.configuration.pin
+                    onToggled: Plasmoid.configuration.pin = checked
+                    icon.name: "window-pin"
 
-                    onClicked: {
-                        listModelController.clear();
-                    }
+                    display: PlasmaComponents.AbstractButton.IconOnly
+                    text: i18n("Keep Open")
 
                     PlasmaComponents.ToolTip.text: text
                     PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
