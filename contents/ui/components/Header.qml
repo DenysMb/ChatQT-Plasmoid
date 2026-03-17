@@ -15,6 +15,8 @@ PlasmaExtras.PlasmoidHeading {
 
     signal clearChatRequested
     signal providerSelected(string provider, string model)
+    signal pinToggled(bool checked)
+    signal thinkingToggled(bool enabled)
 
     property bool isLoading: false
     property string currentProvider: "ollama"
@@ -26,6 +28,7 @@ PlasmaExtras.PlasmoidHeading {
     property string openaiCompatibleModelName: ""
     property bool thinkingEnabled: true
     property var listModelController: null
+    property bool pinChecked: false
 
     width: parent.width
 
@@ -133,8 +136,7 @@ PlasmaExtras.PlasmoidHeading {
             checked: root.thinkingEnabled
             onCheckedChanged: {
                 if (checked !== root.thinkingEnabled) {
-                    Plasmoid.configuration.openaiCompatibleDisableThinking = !checked
-                    root.thinkingEnabled = checked
+                    root.thinkingToggled(checked)
                 }
             }
 
@@ -146,8 +148,8 @@ PlasmaExtras.PlasmoidHeading {
         PlasmaComponents.ToolButton {
             id: pinButton
             checkable: true
-            checked: Plasmoid.configuration.pin || false
-            onToggled: Plasmoid.configuration.pin = checked
+            checked: root.pinChecked
+            onToggled: root.pinToggled(checked)
             icon.name: "window-pin"
 
             display: PlasmaComponents.AbstractButton.IconOnly

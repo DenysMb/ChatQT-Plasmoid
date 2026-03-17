@@ -35,9 +35,10 @@ ColumnLayout {
             placeholderText: i18n("Type here what you want to ask...")
             wrapMode: TextArea.Wrap
 
-            Keys.onReturnPressed: {
+            Keys.onReturnPressed: function(event) {
                 if (event.modifiers & Qt.ControlModifier) {
                     root.sendMessage(messageField.text)
+                    messageField.text = ''
                 } else {
                     event.accepted = false;
                 }
@@ -67,15 +68,8 @@ ColumnLayout {
         onClicked: {
             if (messageField.text.trim()) {
                 root.sendMessage(messageField.text)
+                messageField.text = ''
             }
         }
-    }
-
-    function clearText() {
-        messageField.text = ''
-    }
-
-    function getText() {
-        return messageField.text
     }
 }

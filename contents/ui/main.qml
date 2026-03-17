@@ -20,6 +20,7 @@ PlasmoidItem {
     property string parentMessageId: ''
     property string currentModel: ''
     property var listModelController;
+    property var scrollViewRef;
     property var promptArray: [];
     property var ollamaModels: [];
     property bool isLoading: false
@@ -81,8 +82,8 @@ PlasmoidItem {
     }
 
     function handleStreaming(text, oldLength, listModel) {
-        if (!disableAutoScroll && scrollView.ScrollBar) {
-            scrollView.ScrollBar.vertical.position = 1 - scrollView.ScrollBar.vertical.size;
+        if (!disableAutoScroll && scrollViewRef && scrollViewRef.ScrollBar) {
+            scrollViewRef.ScrollBar.vertical.position = 1 - scrollViewRef.ScrollBar.vertical.size;
         }
 
         if (listModel.count === oldLength) {
@@ -105,9 +106,7 @@ PlasmoidItem {
     }
 
     function request(prompt) {
-        messageInput.clearText()
-
-        listModel.append({
+        listModelController.append({
             "name": "User",
             "number": prompt
         });
@@ -116,15 +115,15 @@ PlasmoidItem {
 
         isLoading = true;
 
-        if (!disableAutoScroll && scrollView.ScrollBar) {
-            scrollView.ScrollBar.vertical.position = 1;
+        if (!disableAutoScroll && scrollViewRef && scrollViewRef.ScrollBar) {
+            scrollViewRef.ScrollBar.vertical.position = 1;
         }
 
         if (currentProvider === "ollama") {
             ApiClient.requestOllama(
                 currentModel,
                 promptArray,
-                listModel,
+                listModelController,
                 handleStreaming,
                 handleRequestComplete
             );
@@ -137,7 +136,7 @@ PlasmoidItem {
                 true,
                 { "x-openclaw-agent-id": "main" },
                 true,
-                listModel,
+                listModelController,
                 handleStreaming,
                 handleRequestComplete
             );
@@ -150,7 +149,7 @@ PlasmoidItem {
                 thinkingEnabled,
                 null,
                 false,
-                listModel,
+                listModelController,
                 handleStreaming,
                 handleRequestComplete
             );
@@ -236,6 +235,7 @@ PlasmoidItem {
             openaiCompatibleModelName: Plasmoid.configuration.openaiCompatibleModel
             thinkingEnabled: root.thinkingEnabled
             listModelController: root.listModelController
+            pinChecked: Plasmoid.configuration.pin || false
 
             onClearChatRequested: {
                 listModelController.clear();
@@ -250,6 +250,15 @@ PlasmoidItem {
                 }
                 listModelController.clear();
             }
+
+            onPinToggled: function(checked) {
+                Plasmoid.configuration.pin = checked;
+            }
+
+            onThinkingToggled: function(enabled) {
+                Plasmoid.configuration.openaiCompatibleDisableThinking = !enabled;
+                root.thinkingEnabled = enabled;
+            }
         }
 
         ScrollView {
@@ -259,6 +268,10 @@ PlasmoidItem {
             Layout.fillHeight: true
             Layout.minimumHeight: 150
             clip: true
+
+            Component.onCompleted: {
+                scrollViewRef = scrollView;
+            }
 
             ListView {
                 id: listView
