@@ -16,7 +16,7 @@ ColumnLayout {
     property bool isProviderConfigured: false
     property bool isLoading: false
 
-    spacing: 0
+    spacing: Kirigami.Units.smallSpacing
 
     ScrollView {
         Layout.fillWidth: true
