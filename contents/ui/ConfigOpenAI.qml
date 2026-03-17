@@ -14,10 +14,30 @@ import org.kde.kcmutils as KCM
 KCM.SimpleKCM {
     id: root
 
+    property string cfg_iconStyle: Plasmoid.configuration.iconStyle
+    property string cfg_iconStyleDefault: "filled-adaptive"
+    property bool cfg_enableOllama: Plasmoid.configuration.enableOllama
+    property bool cfg_enableOllamaDefault: true
+    property bool cfg_enableOpenClaw: Plasmoid.configuration.enableOpenClaw
+    property bool cfg_enableOpenClawDefault: false
+    property bool cfg_enableOpenAICompatible: Plasmoid.configuration.enableOpenAICompatible
+    property bool cfg_enableOpenAICompatibleDefault: false
+    property string cfg_provider: Plasmoid.configuration.provider
+    property string cfg_providerDefault: "ollama"
+    property string cfg_openclawUrl: Plasmoid.configuration.openclawUrl
+    property string cfg_openclawUrlDefault: "http://127.0.0.1:18789"
+    property string cfg_openclawToken: Plasmoid.configuration.openclawToken
+    property string cfg_openclawTokenDefault: ""
     property string cfg_openaiCompatibleUrl: Plasmoid.configuration.openaiCompatibleUrl
+    property string cfg_openaiCompatibleUrlDefault: ""
     property string cfg_openaiCompatibleToken: Plasmoid.configuration.openaiCompatibleToken
+    property string cfg_openaiCompatibleTokenDefault: ""
     property string cfg_openaiCompatibleModel: Plasmoid.configuration.openaiCompatibleModel
+    property string cfg_openaiCompatibleModelDefault: ""
     property bool cfg_openaiCompatibleDisableThinking: Plasmoid.configuration.openaiCompatibleDisableThinking
+    property bool cfg_openaiCompatibleDisableThinkingDefault: false
+    property bool cfg_pin: Plasmoid.configuration.pin
+    property bool cfg_pinDefault: false
 
     Kirigami.FormLayout {
         QQC2.TextField {
