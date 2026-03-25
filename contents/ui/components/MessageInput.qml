@@ -13,6 +13,8 @@ ColumnLayout {
 
     signal sendMessage(string message)
 
+    property alias textField: messageField
+
     property bool isProviderConfigured: false
     property bool isLoading: false
 
@@ -30,6 +32,7 @@ ColumnLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
+            focus: true
             enabled: root.isProviderConfigured && !root.isLoading
             hoverEnabled: root.isProviderConfigured && !root.isLoading
             placeholderText: i18n("Type here what you want to ask...")

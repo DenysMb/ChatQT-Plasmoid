@@ -217,10 +217,30 @@ PlasmoidItem {
     compactRepresentation: CompactRepresentation {}
 
     fullRepresentation: ColumnLayout {
+        property bool expanded: false
+
         Layout.preferredHeight: 600
         Layout.preferredWidth: 400
         Layout.fillWidth: true
         Layout.fillHeight: true
+
+        Component.onCompleted: {
+            expanded = Qt.binding(function() { return root.expanded; });
+        }
+
+        onExpandedChanged: {
+            if (expanded) {
+                focusTimer.start();
+            }
+        }
+
+        Timer {
+            id: focusTimer
+            interval: 100
+            onTriggered: {
+                messageInput.textField.forceActiveFocus()
+            }
+        }
 
         Header {
             id: header

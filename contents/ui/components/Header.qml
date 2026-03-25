@@ -88,7 +88,7 @@ PlasmaExtras.PlasmoidHeading {
             enabled: count > 0 && !root.isLoading
             hoverEnabled: count > 0 && !root.isLoading
 
-            model: root.buildProviderModel().map(function(item) { return item.text })
+            model: itemsModel.map(function(item) { return item.text })
 
             property var itemsModel: root.buildProviderModel()
 
