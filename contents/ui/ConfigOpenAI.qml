@@ -46,8 +46,7 @@ KCM.SimpleKCM {
                 displayName: item.displayName,
                 url: item.url,
                 token: item.token,
-                model: item.model,
-                disableThinking: item.disableThinking
+                model: item.model
             })
         }
         cfg_openaiCompatibleProviders = JSON.stringify(providers)
@@ -60,8 +59,7 @@ KCM.SimpleKCM {
                 displayName: i18nc("@info", "New Provider"),
                 url: "",
                 token: "",
-                model: "",
-                disableThinking: false
+                model: ""
             }
         }
         providersModel.append(provider)
@@ -135,7 +133,6 @@ KCM.SimpleKCM {
                 urlField.text = ""
                 tokenField.text = ""
                 modelField.text = ""
-                disableThinkingCheckBox.checked = false
                 editSheet.title = i18nc("@title:window", "Add Provider")
                 editSheet.open()
             }
@@ -147,7 +144,6 @@ KCM.SimpleKCM {
                 urlField.text = provider.url
                 tokenField.text = provider.token
                 modelField.text = provider.model
-                disableThinkingCheckBox.checked = provider.disableThinking
                 editSheet.title = i18nc("@title:window", "Edit Provider")
                 editSheet.open()
             }
@@ -159,8 +155,7 @@ KCM.SimpleKCM {
                     displayName: displayNameField.text,
                     url: urlField.text,
                     token: tokenField.text,
-                    model: modelField.text,
-                    disableThinking: disableThinkingCheckBox.checked
+                    model: modelField.text
                 }
                 if (editingIndex >= 0) {
                     root.updateProvider(editingIndex, provider)
@@ -197,20 +192,6 @@ KCM.SimpleKCM {
                     Kirigami.FormData.label: i18nc("@label:textbox", "Model:")
                     Layout.fillWidth: true
                     placeholderText: "gpt-4"
-                }
-
-                QQC2.CheckBox {
-                    id: disableThinkingCheckBox
-                    Kirigami.FormData.label: i18nc("@label:checkbox", "Thinking Mode:")
-                    text: i18nc("@option:check", "Disable thinking/reasoning mode")
-                }
-
-                QQC2.Label {
-                    text: i18nc("@info", "Disable thinking for faster responses (useful for non-reasoning models)")
-                    font: Kirigami.Theme.smallFont
-                    color: Kirigami.Theme.disabledTextColor
-                    wrapMode: Text.WordWrap
-                    Layout.fillWidth: true
                 }
             }
         }
@@ -280,22 +261,6 @@ KCM.SimpleKCM {
                         text: token != "" ? i18nc("@info", "Set") : i18nc("@info", "Not set")
                         font: Kirigami.Theme.defaultFont
                         color: token != "" ? Kirigami.Theme.textColor : Kirigami.Theme.disabledTextColor
-                        Layout.fillWidth: true
-                    }
-                }
-
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: Kirigami.Units.largeSpacing
-
-                    QQC2.Label {
-                        text: i18nc("@label", "Thinking:")
-                        font: Kirigami.Theme.smallFont
-                    }
-
-                    QQC2.Label {
-                        text: disableThinking ? i18nc("@info", "Disabled") : i18nc("@info", "Enabled")
-                        font: Kirigami.Theme.defaultFont
                         Layout.fillWidth: true
                     }
                 }

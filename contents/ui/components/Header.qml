@@ -32,17 +32,6 @@ PlasmaExtras.PlasmoidHeading {
 
     width: parent.width
 
-    function getThinkingEnabledForProvider(provider) {
-        if (provider.startsWith("openai-compatible-")) {
-            var index = parseInt(provider.replace("openai-compatible-", ""));
-            var providerConfig = openaiCompatibleProviders[index];
-            if (providerConfig) {
-                return !providerConfig.disableThinking;
-            }
-        }
-        return true;
-    }
-
     function buildProviderModel() {
         var items = []
 
@@ -61,8 +50,7 @@ PlasmaExtras.PlasmoidHeading {
                 items.push({
                     text: displayName + " (" + (provider.model || i18n("No model")) + ")",
                     provider: "openai-compatible-" + i,
-                    model: provider.model || "",
-                    thinkingEnabled: !provider.disableThinking
+                    model: provider.model || ""
                 })
             }
         }
