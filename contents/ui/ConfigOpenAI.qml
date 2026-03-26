@@ -110,12 +110,6 @@ KCM.SimpleKCM {
             }
         }
 
-        Kirigami.PlaceholderMessage {
-            visible: providersModel.count === 0
-            text: i18nc("@info", "No providers configured. Click 'Add Provider' to get started.")
-            Layout.fillWidth: true
-        }
-
         QQC2.Button {
             id: addButton
             text: i18nc("@action:button", "Add Provider")
