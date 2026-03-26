@@ -25,12 +25,23 @@ PlasmaExtras.PlasmoidHeading {
     property bool enableOllama: true
     property bool enableOpenClaw: false
     property bool enableOpenAICompatible: false
-    property string openaiCompatibleModelName: ""
+    property var openaiCompatibleProviders: []
     property bool thinkingEnabled: true
     property var listModelController: null
     property bool pinChecked: false
 
     width: parent.width
+
+    function getThinkingEnabledForProvider(provider) {
+        if (provider.startsWith("openai-compatible-")) {
+            var index = parseInt(provider.replace("openai-compatible-", ""));
+            var providerConfig = openaiCompatibleProviders[index];
+            if (providerConfig) {
+                return !providerConfig.disableThinking;
+            }
+        }
+        return true;
+    }
 
     function buildProviderModel() {
         var items = []
@@ -43,12 +54,17 @@ PlasmaExtras.PlasmoidHeading {
             })
         }
 
-        if (enableOpenAICompatible && openaiCompatibleModelName) {
-            items.push({
-                text: openaiCompatibleModelName + " (OpenAI Compatible)",
-                provider: "openai-compatible",
-                model: openaiCompatibleModelName
-            })
+        if (enableOpenAICompatible && openaiCompatibleProviders.length > 0) {
+            for (var i = 0; i < openaiCompatibleProviders.length; i++) {
+                var provider = openaiCompatibleProviders[i];
+                var displayName = provider.displayName || i18n("Provider") + " " + (i + 1);
+                items.push({
+                    text: displayName + " (" + (provider.model || i18n("No model")) + ")",
+                    provider: "openai-compatible-" + i,
+                    model: provider.model || "",
+                    thinkingEnabled: !provider.disableThinking
+                })
+            }
         }
 
         if (enableOllama && ollamaModels.length > 0) {
@@ -126,12 +142,12 @@ PlasmaExtras.PlasmoidHeading {
                 function onEnableOllamaChanged() { providerComboBox.itemsModel = root.buildProviderModel() }
                 function onEnableOpenClawChanged() { providerComboBox.itemsModel = root.buildProviderModel() }
                 function onEnableOpenAICompatibleChanged() { providerComboBox.itemsModel = root.buildProviderModel() }
-                function onOpenaiCompatibleModelNameChanged() { providerComboBox.itemsModel = root.buildProviderModel() }
+                function onOpenaiCompatibleProvidersChanged() { providerComboBox.itemsModel = root.buildProviderModel() }
             }
         }
 
         PlasmaComponents.CheckBox {
-            visible: root.currentProvider === "openai-compatible"
+            visible: root.currentProvider.startsWith("openai-compatible-")
             text: i18n("Thinking")
             checked: root.thinkingEnabled
             onCheckedChanged: {

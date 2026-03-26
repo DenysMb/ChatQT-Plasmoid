@@ -34,21 +34,9 @@
       <label>OpenClaw Token</label>
       <default></default>
     </entry>
-    <entry name="openaiCompatibleUrl" type="String">
-      <label>OpenAI Compatible URL</label>
-      <default></default>
-    </entry>
-    <entry name="openaiCompatibleToken" type="String">
-      <label>OpenAI Compatible Token</label>
-      <default></default>
-    </entry>
-    <entry name="openaiCompatibleModel" type="String">
-      <label>OpenAI Compatible Model</label>
-      <default></default>
-    </entry>
-    <entry name="openaiCompatibleDisableThinking" type="Bool">
-      <label>Disable thinking/reasoning for OpenAI Compatible</label>
-      <default>false</default>
+    <entry name="openaiCompatibleProviders" type="String">
+      <label>JSON array of OpenAI Compatible providers</label>
+      <default>[]</default>
     </entry>
     <entry name="pin" type="Bool">
       <label>Keep widget open when clicking outside</label>

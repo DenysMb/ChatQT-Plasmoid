@@ -28,14 +28,6 @@ KCM.SimpleKCM {
     property string cfg_openclawUrlDefault: "http://127.0.0.1:18789"
     property string cfg_openclawToken: Plasmoid.configuration.openclawToken
     property string cfg_openclawTokenDefault: ""
-    property string cfg_openaiCompatibleUrl: Plasmoid.configuration.openaiCompatibleUrl
-    property string cfg_openaiCompatibleUrlDefault: ""
-    property string cfg_openaiCompatibleToken: Plasmoid.configuration.openaiCompatibleToken
-    property string cfg_openaiCompatibleTokenDefault: ""
-    property string cfg_openaiCompatibleModel: Plasmoid.configuration.openaiCompatibleModel
-    property string cfg_openaiCompatibleModelDefault: ""
-    property bool cfg_openaiCompatibleDisableThinking: Plasmoid.configuration.openaiCompatibleDisableThinking
-    property bool cfg_openaiCompatibleDisableThinkingDefault: false
     property bool cfg_pin: Plasmoid.configuration.pin
     property bool cfg_pinDefault: false
 
