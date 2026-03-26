@@ -10,6 +10,7 @@ import QtQuick.Layouts
 
 import org.kde.kirigami as Kirigami
 import org.kde.kcmutils as KCM
+import "components" as COMPONENTS
 
 KCM.SimpleKCM {
     id: root
@@ -122,7 +123,17 @@ KCM.SimpleKCM {
 
             Repeater {
                 model: providersModel
-                delegate: providerCardDelegate
+                delegate: COMPONENTS.ProviderCard {
+                    Layout.fillWidth: true
+                    providerDisplayName: providersModel.get(index).displayName
+                    providerUrl: providersModel.get(index).url
+                    providerToken: providersModel.get(index).token
+                    providerModel: providersModel.get(index).model
+                    providerEnabled: providersModel.get(index).enabled !== undefined ? providersModel.get(index).enabled : true
+                    onEditClicked: editSheet.openProvider(index)
+                    onRemoveClicked: root.removeProvider(index)
+                    onEnabledToggled: root.toggleProviderEnabled(index)
+                }
             }
         }
 
@@ -210,129 +221,6 @@ KCM.SimpleKCM {
                     Kirigami.FormData.label: i18nc("@label:textbox", "Model:")
                     Layout.fillWidth: true
                     placeholderText: "gpt-4"
-                }
-            }
-        }
-    }
-
-    Component {
-        id: providerCardDelegate
-
-        Kirigami.AbstractCard {
-            Layout.fillWidth: true
-
-            contentItem: ColumnLayout {
-                spacing: Kirigami.Units.smallSpacing
-
-                // Title row: checkbox | display name | toolbar actions
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: Kirigami.Units.smallSpacing
-
-                    QQC2.CheckBox {
-                        checked: enabled !== undefined ? enabled : true
-                        onToggled: root.toggleProviderEnabled(index)
-                        display: QQC2.AbstractButton.IconOnly
-                    }
-
-                    Kirigami.Heading {
-                        level: 3
-                        text: displayName != "" ? displayName : i18nc("@info", "Unnamed Provider")
-                        Layout.fillWidth: true
-                        elide: Text.ElideRight
-                    }
-
-                    QQC2.ToolButton {
-                        icon.name: "document-edit-symbolic"
-                        display: QQC2.AbstractButton.IconOnly
-                        text: i18nc("@action:button", "Edit")
-                        onClicked: editSheet.openProvider(index)
-
-                        QQC2.ToolTip {
-                            text: parent.text
-                            delay: Kirigami.Units.toolTipDelay
-                        }
-                    }
-
-                    QQC2.ToolButton {
-                        icon.name: "delete-symbolic"
-                        display: QQC2.AbstractButton.IconOnly
-                        text: i18nc("@action:button", "Remove")
-                        onClicked: root.removeProvider(index)
-
-                        QQC2.ToolTip {
-                            text: parent.text
-                            delay: Kirigami.Units.toolTipDelay
-                        }
-                    }
-                }
-
-                Kirigami.Separator {
-                    Layout.fillWidth: true
-                }
-
-                // Provider info section — dimmed when disabled
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: Kirigami.Units.smallSpacing
-                    opacity: enabled !== undefined ? (enabled ? 1.0 : 0.5) : 1.0
-                    Behavior on opacity { NumberAnimation { duration: Kirigami.Units.shortDuration } }
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: Kirigami.Units.largeSpacing
-
-                        QQC2.Label {
-                            text: i18nc("@label", "URL:")
-                            font: Kirigami.Theme.smallFont
-                        }
-
-                        QQC2.Label {
-                            text: url != "" ? url : i18nc("@info", "Not set")
-                            font: Kirigami.Theme.defaultFont
-                            color: url != "" ? Kirigami.Theme.textColor : Kirigami.Theme.disabledTextColor
-                            Layout.fillWidth: true
-                            wrapMode: Text.ElideMiddle
-                        }
-                    }
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: Kirigami.Units.largeSpacing
-
-                        QQC2.Label {
-                            text: i18nc("@label", "Model:")
-                            font: Kirigami.Theme.smallFont
-                        }
-
-                        QQC2.Label {
-                            text: model != "" ? model : i18nc("@info", "Not set")
-                            font: Kirigami.Theme.defaultFont
-                            color: model != "" ? Kirigami.Theme.textColor : Kirigami.Theme.disabledTextColor
-                            Layout.fillWidth: true
-                            wrapMode: Text.ElideMiddle
-                        }
-                    }
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: Kirigami.Units.largeSpacing
-
-                        QQC2.Label {
-                            text: i18nc("@label", "Token:")
-                            font: Kirigami.Theme.smallFont
-                        }
-
-                        QQC2.Label {
-                            text: token != ""
-                                ? i18nc("@info", "Configured — API key is saved securely")
-                                : i18nc("@info", "Missing — no API key configured")
-                            font: Kirigami.Theme.defaultFont
-                            color: token != "" ? Kirigami.Theme.textColor : Kirigami.Theme.disabledTextColor
-                            Layout.fillWidth: true
-                            wrapMode: Text.Wrap
-                        }
-                    }
                 }
             }
         }
