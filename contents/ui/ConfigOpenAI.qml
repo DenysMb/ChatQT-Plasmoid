@@ -98,28 +98,21 @@ KCM.SimpleKCM {
             Layout.fillWidth: true
         }
 
-        QQC2.ScrollView {
+        ColumnLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.minimumHeight: 200
             visible: providersModel.count > 0
-            clip: true
+            spacing: Kirigami.Units.smallSpacing
 
-            ColumnLayout {
-                width: parent.width
-                spacing: Kirigami.Units.smallSpacing
-
-                Repeater {
-                    model: providersModel
-                    delegate: providerCardDelegate
-                }
+            Repeater {
+                model: providersModel
+                delegate: providerCardDelegate
             }
         }
 
         Kirigami.PlaceholderMessage {
             visible: providersModel.count === 0
             text: i18nc("@info", "No providers configured. Click 'Add Provider' to get started.")
-            Layout.alignment: Qt.AlignHCenter
             Layout.fillWidth: true
         }
 
@@ -127,7 +120,7 @@ KCM.SimpleKCM {
             id: addButton
             text: i18nc("@action:button", "Add Provider")
             icon.name: "list-add-symbolic"
-            Layout.alignment: Qt.AlignHCenter
+            Layout.fillWidth: true
             onClicked: editSheet.openNewProvider()
         }
 
@@ -234,8 +227,6 @@ KCM.SimpleKCM {
 
         Kirigami.AbstractCard {
             Layout.fillWidth: true
-            Layout.leftMargin: Kirigami.Units.largeSpacing
-            Layout.rightMargin: Kirigami.Units.largeSpacing
 
             contentItem: ColumnLayout {
                 spacing: Kirigami.Units.smallSpacing
