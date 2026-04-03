@@ -10,37 +10,13 @@
       <label>Icon style: filled-adaptive, outlined-adaptive, filled-dark, filled-light, outlined-dark, outlined-light</label>
       <default>filled-adaptive</default>
     </entry>
-    <entry name="enableOllama" type="Bool">
-      <label>Enable Ollama provider</label>
-      <default>true</default>
-    </entry>
-    <entry name="enableOpenClaw" type="Bool">
-      <label>Enable OpenClaw provider</label>
-      <default>false</default>
-    </entry>
-    <entry name="enableOpenAICompatible" type="Bool">
-      <label>Enable OpenAI Compatible provider</label>
-      <default>false</default>
-    </entry>
     <entry name="provider" type="String">
-      <label>AI Provider: ollama, openclaw, openai-compatible</label>
-      <default>ollama</default>
+      <label>Currently selected provider (format: type-index, e.g., ollama-0, openclaw-0, openai-compatible-0)</label>
+      <default>ollama-0</default>
     </entry>
-    <entry name="openclawUrl" type="String">
-      <label>OpenClaw URL</label>
-      <default>http://127.0.0.1:18789</default>
-    </entry>
-    <entry name="openclawToken" type="String">
-      <label>OpenClaw Token</label>
-      <default></default>
-    </entry>
-    <entry name="openaiCompatibleProviders" type="String">
-      <label>JSON array of OpenAI Compatible providers</label>
-      <default>[]</default>
-    </entry>
-    <entry name="openclawProviders" type="String">
-      <label>JSON array of OpenClaw providers</label>
-      <default>[]</default>
+    <entry name="providers" type="String">
+      <label>JSON array of all configured providers</label>
+      <default>[{"type":"ollama","displayName":"Ollama Local","url":"http://localhost:11434","enabled":true}]</default>
     </entry>
     <entry name="pin" type="Bool">
       <label>Keep widget open when clicking outside</label>

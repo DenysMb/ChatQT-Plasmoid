@@ -29,72 +29,92 @@ PlasmoidItem {
     property string currentProvider: Plasmoid.configuration.provider || "ollama"
     property bool thinkingEnabled: true
 
-    property bool enableOllama: Plasmoid.configuration.enableOllama !== false
-    property bool enableOpenClaw: Plasmoid.configuration.enableOpenClaw === true
-    property bool enableOpenAICompatible: Plasmoid.configuration.enableOpenAICompatible === true
-
-    property var openaiCompatibleProviders: {
+    property var providers: {
         try {
-            return JSON.parse(Plasmoid.configuration.openaiCompatibleProviders || "[]");
+            return JSON.parse(Plasmoid.configuration.providers || "[]");
         } catch (e) {
             return [];
         }
     }
 
     function isProviderConfigured() {
-        if (!isProviderEnabled(currentProvider)) {
-            return false;
-        }
-        if (currentProvider === "ollama") {
+        var parts = currentProvider.split("-");
+        if (parts.length < 2) return false;
+        
+        var type = parts[0];
+        var index = parseInt(parts[1]);
+        
+        var provider = providers[index];
+        if (!provider || provider.type !== type) return false;
+        
+        if (type === "ollama") {
             return hasLocalModel;
-        } else if (currentProvider === "openclaw") {
-            return Plasmoid.configuration.openclawUrl && Plasmoid.configuration.openclawToken;
-        } else if (currentProvider.startsWith("openai-compatible-")) {
-            var index = parseInt(currentProvider.replace("openai-compatible-", ""));
-            var provider = openaiCompatibleProviders[index];
-            return provider && provider.url && provider.token && provider.model;
+        } else if (type === "openclaw") {
+            return provider.url && provider.token;
+        } else if (type === "openai-compatible") {
+            return provider.url && provider.token && provider.model;
         }
         return false;
     }
 
-    function isProviderEnabled(provider) {
-        if (provider === "ollama") return enableOllama;
-        if (provider === "openclaw") return enableOpenClaw;
-        if (provider.startsWith("openai-compatible-")) return enableOpenAICompatible;
-        return false;
+    function isProviderEnabled(providerId) {
+        var parts = providerId.split("-");
+        if (parts.length < 2) return false;
+        
+        var type = parts[0];
+        var index = parseInt(parts[1]);
+        
+        var provider = providers[index];
+        return provider && provider.type === type && provider.enabled !== false;
     }
 
     function getFirstAvailableProvider() {
-        if (enableOpenClaw && Plasmoid.configuration.openclawUrl && Plasmoid.configuration.openclawToken) {
-            return "openclaw";
-        }
-        if (enableOpenAICompatible && openaiCompatibleProviders.length > 0) {
-            for (var i = 0; i < openaiCompatibleProviders.length; i++) {
-                var provider = openaiCompatibleProviders[i];
-                if (provider.url && provider.token && provider.model) {
-                    return "openai-compatible-" + i;
-                }
+        for (var i = 0; i < providers.length; i++) {
+            var provider = providers[i];
+            if (provider.enabled === false) continue;
+            
+            if (provider.type === "ollama" && hasLocalModel) {
+                return "ollama-" + i;
+            } else if (provider.type === "openclaw" && provider.url && provider.token) {
+                return "openclaw-" + i;
+            } else if (provider.type === "openai-compatible" && provider.url && provider.token && provider.model) {
+                return "openai-compatible-" + i;
             }
         }
-        if (enableOllama && hasLocalModel) {
-            return "ollama";
-        }
-        return "ollama";
+        return "ollama-0";
     }
 
     function getProviderNotConfiguredMessage() {
-        if (currentProvider === "ollama") {
+        var parts = currentProvider.split("-");
+        if (parts.length < 2) return i18n("Provider not configured.");
+        
+        var type = parts[0];
+        var index = parseInt(parts[1]);
+        var provider = providers[index];
+        
+        if (type === "ollama") {
             return i18n("No local model found.\nPlease install some first.\n\nIf you need help, check Ollama documentation.");
-        } else if (currentProvider === "openclaw") {
+        } else if (type === "openclaw") {
             return i18n("OpenClaw not configured.\nPlease set URL and Token in settings.");
-        } else if (currentProvider.startsWith("openai-compatible-")) {
-            return i18n("OpenAI Compatible provider not configured.\nPlease set URL, Token and Model in settings.");
+        } else if (type === "openai-compatible") {
+            var name = provider && provider.displayName ? provider.displayName : "OpenAI Compatible";
+            return i18n("%1 not configured.\nPlease set URL, Token and Model in settings.", name);
         }
         return i18n("Provider not configured.");
     }
 
-    function getOpenAICompatibleProvider(index) {
-        return openaiCompatibleProviders[index];
+    function getProvider(index) {
+        return providers[index];
+    }
+
+    function getProviderType() {
+        var parts = currentProvider.split("-");
+        return parts.length > 0 ? parts[0] : "ollama";
+    }
+
+    function getProviderIndex() {
+        var parts = currentProvider.split("-");
+        return parts.length > 1 ? parseInt(parts[1]) : 0;
     }
 
     function handleStreaming(text, oldLength, listModel) {
@@ -135,7 +155,11 @@ PlasmoidItem {
             scrollViewRef.ScrollBar.vertical.position = 1;
         }
 
-        if (currentProvider === "ollama") {
+        var type = getProviderType();
+        var index = getProviderIndex();
+        var provider = getProvider(index);
+
+        if (type === "ollama") {
             ApiClient.requestOllama(
                 currentModel,
                 promptArray,
@@ -143,10 +167,10 @@ PlasmoidItem {
                 handleStreaming,
                 handleRequestComplete
             );
-        } else if (currentProvider === "openclaw") {
+        } else if (type === "openclaw") {
             ApiClient.requestOpenAICompatible(
-                Plasmoid.configuration.openclawUrl,
-                Plasmoid.configuration.openclawToken,
+                provider.url,
+                provider.token,
                 "openclaw",
                 promptArray,
                 true,
@@ -156,9 +180,7 @@ PlasmoidItem {
                 handleStreaming,
                 handleRequestComplete
             );
-        } else if (currentProvider.startsWith("openai-compatible-")) {
-            var index = parseInt(currentProvider.replace("openai-compatible-", ""));
-            var provider = getOpenAICompatibleProvider(index);
+        } else if (type === "openai-compatible") {
             ApiClient.requestOpenAICompatible(
                 provider.url,
                 provider.token,
@@ -198,13 +220,14 @@ PlasmoidItem {
             Plasmoid.configuration.provider = currentProvider;
         }
 
-        if (currentProvider === "ollama" && enableOllama) {
+        if (getProviderType() === "ollama") {
             getModels();
         }
     }
 
     function getThinkingEnabledForCurrentProvider() {
-        return true;
+        var provider = getProvider(getProviderIndex());
+        return provider && provider.thinkingEnabled !== undefined ? provider.thinkingEnabled : true;
     }
 
     Component.onCompleted: {
@@ -271,10 +294,7 @@ PlasmoidItem {
             currentProvider: root.currentProvider
             currentModel: root.currentModel
             ollamaModels: root.ollamaModels
-            enableOllama: root.enableOllama
-            enableOpenClaw: root.enableOpenClaw
-            enableOpenAICompatible: root.enableOpenAICompatible
-            openaiCompatibleProviders: root.openaiCompatibleProviders
+            providers: root.providers
             thinkingEnabled: root.thinkingEnabled
             listModelController: root.listModelController
             pinChecked: Plasmoid.configuration.pin || false
@@ -287,7 +307,7 @@ PlasmoidItem {
             onProviderSelected: function(provider, model) {
                 root.currentProvider = provider;
                 Plasmoid.configuration.provider = provider;
-                if (provider === "ollama") {
+                if (getProviderType() === "ollama") {
                     root.currentModel = model;
                 }
                 listModelController.clear();
@@ -363,7 +383,7 @@ PlasmoidItem {
             Layout.fillWidth: true
 
             text: i18n("Refresh models list")
-            visible: enableOllama && currentProvider === "ollama" && !hasLocalModel
+            visible: getProviderType() === "ollama" && !hasLocalModel
 
             onClicked: getModels()
         }

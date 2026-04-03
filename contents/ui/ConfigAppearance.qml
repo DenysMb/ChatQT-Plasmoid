@@ -16,18 +16,6 @@ KCM.SimpleKCM {
 
     property string cfg_iconStyle: Plasmoid.configuration.iconStyle
     property string cfg_iconStyleDefault: "filled-adaptive"
-    property bool cfg_enableOllama: Plasmoid.configuration.enableOllama
-    property bool cfg_enableOllamaDefault: true
-    property bool cfg_enableOpenClaw: Plasmoid.configuration.enableOpenClaw
-    property bool cfg_enableOpenClawDefault: false
-    property bool cfg_enableOpenAICompatible: Plasmoid.configuration.enableOpenAICompatible
-    property bool cfg_enableOpenAICompatibleDefault: false
-    property string cfg_provider: Plasmoid.configuration.provider
-    property string cfg_providerDefault: "ollama"
-    property string cfg_openclawUrl: Plasmoid.configuration.openclawUrl
-    property string cfg_openclawUrlDefault: "http://127.0.0.1:18789"
-    property string cfg_openclawToken: Plasmoid.configuration.openclawToken
-    property string cfg_openclawTokenDefault: ""
     property bool cfg_pin: Plasmoid.configuration.pin
     property bool cfg_pinDefault: false
 

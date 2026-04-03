@@ -19,13 +19,10 @@ PlasmaExtras.PlasmoidHeading {
     signal thinkingToggled(bool enabled)
 
     property bool isLoading: false
-    property string currentProvider: "ollama"
+    property string currentProvider: "ollama-0"
     property string currentModel: ""
     property var ollamaModels: []
-    property bool enableOllama: true
-    property bool enableOpenClaw: false
-    property bool enableOpenAICompatible: false
-    property var openaiCompatibleProviders: []
+    property var providers: []
     property bool thinkingEnabled: true
     property var listModelController: null
     property bool pinChecked: false
@@ -35,34 +32,32 @@ PlasmaExtras.PlasmoidHeading {
     function buildProviderModel() {
         var items = []
 
-        if (enableOpenClaw) {
-            items.push({
-                text: "OpenClaw",
-                provider: "openclaw",
-                model: ""
-            })
-        }
+        for (var i = 0; i < providers.length; i++) {
+            var provider = providers[i];
+            if (provider.enabled === false) continue;
 
-        if (enableOpenAICompatible && openaiCompatibleProviders.length > 0) {
-            for (var i = 0; i < openaiCompatibleProviders.length; i++) {
-                var provider = openaiCompatibleProviders[i];
-                var displayName = provider.displayName || i18n("Provider") + " " + (i + 1);
+            if (provider.type === "ollama" && ollamaModels.length > 0) {
+                ollamaModels.forEach(function(modelObj) {
+                    items.push({
+                        text: modelObj.text + " (" + (provider.displayName || "Ollama") + ")",
+                        provider: "ollama-" + i,
+                        model: modelObj.value
+                    })
+                })
+            } else if (provider.type === "openclaw") {
+                items.push({
+                    text: provider.displayName || "OpenClaw",
+                    provider: "openclaw-" + i,
+                    model: ""
+                })
+            } else if (provider.type === "openai-compatible") {
+                var displayName = provider.displayName || ("Provider " + (i + 1));
                 items.push({
                     text: displayName + " (" + (provider.model || i18n("No model")) + ")",
                     provider: "openai-compatible-" + i,
                     model: provider.model || ""
                 })
             }
-        }
-
-        if (enableOllama && ollamaModels.length > 0) {
-            ollamaModels.forEach(function(modelObj) {
-                items.push({
-                    text: modelObj.text + " (Ollama)",
-                    provider: "ollama",
-                    model: modelObj.value
-                })
-            })
         }
 
         return items
@@ -111,10 +106,10 @@ PlasmaExtras.PlasmoidHeading {
                 var items = itemsModel
                 for (var i = 0; i < items.length; i++) {
                     if (items[i].provider === root.currentProvider) {
-                        if (root.currentProvider === "ollama" && items[i].model === root.currentModel) {
+                        if (items[i].provider.startsWith("ollama-") && items[i].model === root.currentModel) {
                             currentIndex = i
                             return
-                        } else if (root.currentProvider !== "ollama") {
+                        } else if (!items[i].provider.startsWith("ollama-")) {
                             currentIndex = i
                             return
                         }
@@ -127,10 +122,7 @@ PlasmaExtras.PlasmoidHeading {
                 function onCurrentProviderChanged() { providerComboBox.updateCurrentIndex() }
                 function onCurrentModelChanged() { providerComboBox.updateCurrentIndex() }
                 function onOllamaModelsChanged() { providerComboBox.itemsModel = root.buildProviderModel() }
-                function onEnableOllamaChanged() { providerComboBox.itemsModel = root.buildProviderModel() }
-                function onEnableOpenClawChanged() { providerComboBox.itemsModel = root.buildProviderModel() }
-                function onEnableOpenAICompatibleChanged() { providerComboBox.itemsModel = root.buildProviderModel() }
-                function onOpenaiCompatibleProvidersChanged() { providerComboBox.itemsModel = root.buildProviderModel() }
+                function onProvidersChanged() { providerComboBox.itemsModel = root.buildProviderModel() }
             }
         }
 

@@ -10,21 +10,9 @@ import org.kde.plasma.configuration
 
 ConfigModel {
     ConfigCategory {
-        name: i18n("General")
-        icon: "preferences-system"
-        source: "ConfigGeneral.qml"
-    }
-
-    ConfigCategory {
-        name: i18n("OpenClaw")
-        icon: "network-server"
-        source: "ConfigOpenClaw.qml"
-    }
-
-    ConfigCategory {
-        name: i18n("OpenAI Compatible")
-        icon: "network-connect"
-        source: "ConfigOpenAI.qml"
+        name: i18n("Providers")
+        icon: "preferences-system-network"
+        source: "ConfigProviders.qml"
     }
 
     ConfigCategory {

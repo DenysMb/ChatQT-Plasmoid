@@ -15,6 +15,7 @@ Kirigami.AbstractCard {
     property string providerUrl
     property string providerToken
     property string providerModel
+    property string providerType
     property bool providerEnabled
 
     signal editClicked
@@ -100,6 +101,7 @@ Kirigami.AbstractCard {
             RowLayout {
                 Layout.fillWidth: true
                 spacing: Kirigami.Units.largeSpacing
+                visible: root.providerType === "openai-compatible" || root.providerType === "ollama"
 
                 QQC2.Label {
                     text: i18nc("@label", "Model:")
@@ -108,9 +110,9 @@ Kirigami.AbstractCard {
                 }
 
                 QQC2.Label {
-                    text: root.providerModel != "" ? root.providerModel : i18nc("@info", "Not set")
+                    text: root.providerModel != "" ? root.providerModel : (root.providerType === "ollama" ? i18nc("@info", "Auto-detected") : i18nc("@info", "Not set"))
                     font: Kirigami.Theme.defaultFont
-                    color: root.providerModel != "" ? Kirigami.Theme.textColor : Kirigami.Theme.disabledTextColor
+                    color: root.providerModel != "" || root.providerType === "ollama" ? Kirigami.Theme.textColor : Kirigami.Theme.disabledTextColor
                     Layout.fillWidth: true
                     wrapMode: Text.ElideMiddle
                 }
