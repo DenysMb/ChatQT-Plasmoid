@@ -38,6 +38,10 @@
       <label>JSON array of OpenAI Compatible providers</label>
       <default>[]</default>
     </entry>
+    <entry name="openclawProviders" type="String">
+      <label>JSON array of OpenClaw providers</label>
+      <default>[]</default>
+    </entry>
     <entry name="pin" type="Bool">
       <label>Keep widget open when clicking outside</label>
       <default>false</default>

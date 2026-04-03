@@ -10,6 +10,7 @@ import QtQuick.Layouts
 
 import org.kde.kirigami as Kirigami
 import org.kde.kcmutils as KCM
+import "components" as COMPONENTS
 
 KCM.SimpleKCM {
     id: root
@@ -18,57 +19,206 @@ KCM.SimpleKCM {
     property string cfg_iconStyleDefault: "filled-adaptive"
     property bool cfg_enableOllama: Plasmoid.configuration.enableOllama
     property bool cfg_enableOllamaDefault: true
-    property bool cfg_enableOpenClaw: Plasmoid.configuration.enableOpenClaw
-    property bool cfg_enableOpenClawDefault: false
     property bool cfg_enableOpenAICompatible: Plasmoid.configuration.enableOpenAICompatible
     property bool cfg_enableOpenAICompatibleDefault: false
-    property string cfg_provider: Plasmoid.configuration.provider
-    property string cfg_providerDefault: "ollama"
-    property string cfg_openclawUrl: Plasmoid.configuration.openclawUrl
-    property string cfg_openclawUrlDefault: "http://127.0.0.1:18789"
-    property string cfg_openclawToken: Plasmoid.configuration.openclawToken
-    property string cfg_openclawTokenDefault: ""
     property bool cfg_pin: Plasmoid.configuration.pin
     property bool cfg_pinDefault: false
+    property string cfg_openclawProviders: Plasmoid.configuration.openclawProviders || "[]"
 
-    Kirigami.FormLayout {
-        QQC2.TextField {
-            id: openclawUrlField
+    ListModel {
+        id: providersModel
+    }
 
-            Kirigami.FormData.label: i18nc("@label:textbox", "URL:")
+    Component.onCompleted: {
+        loadProviders()
+    }
 
-            Layout.fillWidth: true
-            text: cfg_openclawUrl
-            onTextChanged: cfg_openclawUrl = text
-            placeholderText: "http://127.0.0.1:18789"
+    function loadProviders() {
+        providersModel.clear()
+        try {
+            var providers = JSON.parse(cfg_openclawProviders)
+            console.log("Loaded providers:", providers.length)
+            for (var i = 0; i < providers.length; i++) {
+                console.log("Provider", i, ":", JSON.stringify(providers[i]))
+                if (providers[i].enabled === undefined) {
+                    providers[i].enabled = true
+                }
+                providersModel.append(providers[i])
+            }
+        } catch (e) {
+            console.error("Failed to parse providers:", e)
         }
+    }
+
+    function saveProviders() {
+        var providers = []
+        for (var i = 0; i < providersModel.count; i++) {
+            var item = providersModel.get(i)
+            providers.push({
+                displayName: item.displayName,
+                url: item.url,
+                token: item.token,
+                enabled: item.enabled !== undefined ? item.enabled : true
+            })
+        }
+        cfg_openclawProviders = JSON.stringify(providers)
+        console.log("Saved providers:", cfg_openclawProviders)
+    }
+
+    function addProvider(provider) {
+        if (provider === undefined) {
+            provider = {
+                displayName: i18nc("@info", "New Provider"),
+                url: "http://127.0.0.1:18789",
+                token: "",
+                enabled: true
+            }
+        }
+        if (provider.enabled === undefined) {
+            provider.enabled = true
+        }
+        providersModel.append(provider)
+        saveProviders()
+    }
+
+    function updateProvider(index, provider) {
+        var existing = providersModel.get(index)
+        if (existing.enabled !== undefined) {
+            provider.enabled = existing.enabled
+        }
+        providersModel.set(index, provider)
+        saveProviders()
+    }
+
+    function removeProvider(index) {
+        providersModel.remove(index)
+        saveProviders()
+    }
+
+    function toggleProviderEnabled(index) {
+        var item = providersModel.get(index)
+        providersModel.setProperty(index, "enabled", !item.enabled)
+        saveProviders()
+    }
+
+    ColumnLayout {
+        anchors.fill: parent
+        anchors.margins: Kirigami.Units.largeSpacing
+        spacing: Kirigami.Units.largeSpacing
 
         QQC2.Label {
-            text: i18nc("@info", "The URL of your OpenClaw instance")
+            text: i18nc("@info", "Configure multiple OpenClaw instances. Add, edit, or remove providers using the buttons below.")
             font: Kirigami.Theme.smallFont
             color: Kirigami.Theme.disabledTextColor
             wrapMode: Text.WordWrap
             Layout.fillWidth: true
         }
 
-        QQC2.TextField {
-            id: openclawTokenField
-
-            Kirigami.FormData.label: i18nc("@label:textbox", "Token:")
-
+        Kirigami.Heading {
+            visible: providersModel.count > 0
+            level: 2
+            text: i18nc("@title:group", "Providers")
             Layout.fillWidth: true
-            text: cfg_openclawToken
-            onTextChanged: cfg_openclawToken = text
-            placeholderText: i18nc("@info:placeholder", "Enter your token")
-            echoMode: QQC2.TextField.Password
         }
 
-        QQC2.Label {
-            text: i18nc("@info", "Authentication token for OpenClaw")
-            font: Kirigami.Theme.smallFont
-            color: Kirigami.Theme.disabledTextColor
-            wrapMode: Text.WordWrap
+        ColumnLayout {
             Layout.fillWidth: true
+            Layout.fillHeight: true
+            visible: providersModel.count > 0
+            spacing: Kirigami.Units.smallSpacing
+
+            Repeater {
+                model: providersModel
+                delegate: COMPONENTS.ProviderCard {
+                    Layout.fillWidth: true
+                    providerDisplayName: providersModel.get(index).displayName
+                    providerUrl: providersModel.get(index).url
+                    providerToken: providersModel.get(index).token
+                    providerModel: ""
+                    providerEnabled: providersModel.get(index).enabled !== undefined ? providersModel.get(index).enabled : true
+                    onEditClicked: editSheet.openProvider(index)
+                    onRemoveClicked: root.removeProvider(index)
+                    onEnabledToggled: root.toggleProviderEnabled(index)
+                }
+            }
+        }
+
+        QQC2.Button {
+            id: addButton
+            text: i18nc("@action:button", "Add Provider")
+            icon.name: "list-add-symbolic"
+            Layout.fillWidth: true
+            onClicked: editSheet.openNewProvider()
+        }
+
+        Item {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+        }
+
+        Kirigami.Dialog {
+            id: editSheet
+            title: i18nc("@title:window", "Edit Provider")
+
+            property int editingIndex: -1
+
+            function openNewProvider() {
+                editingIndex = -1
+                displayNameField.text = i18nc("@info", "New Provider")
+                urlField.text = "http://127.0.0.1:18789"
+                tokenField.text = ""
+                editSheet.title = i18nc("@title:window", "Add Provider")
+                editSheet.open()
+            }
+
+            function openProvider(index) {
+                editingIndex = index
+                var provider = providersModel.get(index)
+                displayNameField.text = provider.displayName
+                urlField.text = provider.url
+                tokenField.text = provider.token
+                editSheet.title = i18nc("@title:window", "Edit Provider")
+                editSheet.open()
+            }
+
+            standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
+
+            onAccepted: {
+                var provider = {
+                    displayName: displayNameField.text,
+                    url: urlField.text,
+                    token: tokenField.text
+                }
+                if (editingIndex >= 0) {
+                    root.updateProvider(editingIndex, provider)
+                } else {
+                    root.addProvider(provider)
+                }
+            }
+
+            Kirigami.FormLayout {
+                QQC2.TextField {
+                    id: displayNameField
+                    Kirigami.FormData.label: i18nc("@label:textbox", "Display Name:")
+                    Layout.fillWidth: true
+                    placeholderText: i18nc("@info:placeholder", "e.g., OpenClaw Local")
+                }
+
+                QQC2.TextField {
+                    id: urlField
+                    Kirigami.FormData.label: i18nc("@label:textbox", "API URL:")
+                    Layout.fillWidth: true
+                    placeholderText: "http://127.0.0.1:18789"
+                }
+
+                QQC2.TextField {
+                    id: tokenField
+                    Kirigami.FormData.label: i18nc("@label:textbox", "Token:")
+                    Layout.fillWidth: true
+                    placeholderText: i18nc("@info:placeholder", "Enter your token")
+                    echoMode: QQC2.TextField.Password
+                }
+            }
         }
     }
 }
