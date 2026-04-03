@@ -39,7 +39,7 @@ PlasmaExtras.PlasmoidHeading {
             if (provider.type === "ollama" && ollamaModels.length > 0) {
                 ollamaModels.forEach(function(modelObj) {
                     items.push({
-                        text: modelObj.text + " (" + (provider.displayName || "Ollama") + ")",
+                        text: modelObj.text,
                         provider: "ollama-" + i,
                         model: modelObj.value
                     })
