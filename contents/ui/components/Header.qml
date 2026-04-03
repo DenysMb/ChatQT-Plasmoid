@@ -67,8 +67,8 @@ PlasmaExtras.PlasmoidHeading {
         Layout.fillWidth: true
 
         PlasmaComponents.ToolButton {
-            icon.name: "edit-clear-history-symbolic"
-            text: i18n("Clear chat")
+            icon.name: "contact-new-symbolic"
+            text: i18n("New chat")
             display: PlasmaComponents.AbstractButton.IconOnly
             enabled: providerComboBox.count > 0 && !root.isLoading
             hoverEnabled: providerComboBox.count > 0 && !root.isLoading
