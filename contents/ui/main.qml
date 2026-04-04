@@ -38,11 +38,11 @@ PlasmoidItem {
     }
 
     function isProviderConfigured() {
-        var parts = currentProvider.split("-");
-        if (parts.length < 2) return false;
+        var lastDash = currentProvider.lastIndexOf("-");
+        if (lastDash < 1) return false;
         
-        var type = parts[0];
-        var index = parseInt(parts[1]);
+        var type = currentProvider.substring(0, lastDash);
+        var index = parseInt(currentProvider.substring(lastDash + 1));
         
         var provider = providers[index];
         if (!provider || provider.type !== type) return false;
@@ -58,11 +58,11 @@ PlasmoidItem {
     }
 
     function isProviderEnabled(providerId) {
-        var parts = providerId.split("-");
-        if (parts.length < 2) return false;
+        var lastDash = providerId.lastIndexOf("-");
+        if (lastDash < 1) return false;
         
-        var type = parts[0];
-        var index = parseInt(parts[1]);
+        var type = providerId.substring(0, lastDash);
+        var index = parseInt(providerId.substring(lastDash + 1));
         
         var provider = providers[index];
         return provider && provider.type === type && provider.enabled !== false;
@@ -85,11 +85,11 @@ PlasmoidItem {
     }
 
     function getProviderNotConfiguredMessage() {
-        var parts = currentProvider.split("-");
-        if (parts.length < 2) return i18n("Provider not configured.");
+        var lastDash = currentProvider.lastIndexOf("-");
+        if (lastDash < 1) return i18n("Provider not configured.");
         
-        var type = parts[0];
-        var index = parseInt(parts[1]);
+        var type = currentProvider.substring(0, lastDash);
+        var index = parseInt(currentProvider.substring(lastDash + 1));
         var provider = providers[index];
         
         if (type === "ollama") {
@@ -108,13 +108,13 @@ PlasmoidItem {
     }
 
     function getProviderType() {
-        var parts = currentProvider.split("-");
-        return parts.length > 0 ? parts[0] : "ollama";
+        var lastDash = currentProvider.lastIndexOf("-");
+        return lastDash > 0 ? currentProvider.substring(0, lastDash) : "ollama";
     }
 
     function getProviderIndex() {
-        var parts = currentProvider.split("-");
-        return parts.length > 1 ? parseInt(parts[1]) : 0;
+        var lastDash = currentProvider.lastIndexOf("-");
+        return lastDash > 0 ? parseInt(currentProvider.substring(lastDash + 1)) : 0;
     }
 
     function handleStreaming(text, oldLength, listModel) {
