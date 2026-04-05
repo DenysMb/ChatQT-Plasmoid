@@ -28,6 +28,9 @@ PlasmoidItem {
     property bool disableAutoScroll: false;
     property string currentProvider: Plasmoid.configuration.provider || "ollama"
     property bool thinkingEnabled: true
+    property bool isStreaming: false
+    property string lastSentMessage: ""
+    property var activeXhr: null
 
     property var providers: {
         try {
@@ -118,6 +121,8 @@ PlasmoidItem {
     }
 
     function handleStreaming(text, oldLength, listModel) {
+        isStreaming = true;
+
         if (!disableAutoScroll && scrollViewRef && scrollViewRef.ScrollBar) {
             scrollViewRef.ScrollBar.vertical.position = 1 - scrollViewRef.ScrollBar.vertical.size;
         }
@@ -134,14 +139,73 @@ PlasmoidItem {
     }
 
     function handleRequestComplete(oldLength, listModel) {
+        console.log("handleRequestComplete — activeXhr:", activeXhr, "isLoading:", isLoading);
+        if (activeXhr === null) {
+            console.log("handleRequestComplete — early return (activeXhr null)");
+            return;
+        }
+
         if (listModel.count > oldLength) {
             const lastValue = listModel.get(oldLength);
             promptArray.push({ "role": "assistant", "content": lastValue.number, "images": [] });
         }
         isLoading = false;
+        activeXhr = null;
+        isStreaming = false;
+    }
+
+    function cancelRequest() {
+        console.log("CANCEL called — isLoading:", isLoading, "isStreaming:", isStreaming, "activeXhr:", activeXhr);
+        if (!isLoading) {
+            console.log("CANCEL early return — not loading");
+            return "";
+        }
+
+        var wasStreamingBeforeAbort = isStreaming;
+        console.log("wasStreamingBeforeAbort:", wasStreamingBeforeAbort);
+
+        var abortResult = ApiClient.abortActiveRequest();
+        console.log("abortActiveRequest returned:", abortResult);
+        activeXhr = null;
+
+        var restoreText = "";
+
+        if (!wasStreamingBeforeAbort) {
+            if (listModelController.count > 0) {
+                listModelController.remove(listModelController.count - 1);
+            }
+            promptArray.pop();
+            restoreText = lastSentMessage;
+        }
+
+        isLoading = false;
+        isStreaming = false;
+        console.log("CANCEL done — isLoading:", isLoading, "isStreaming:", isStreaming);
+        return restoreText;
+    }
+    function stopRequest() {
+        if (!isLoading) return;
+
+        ApiClient.abortActiveRequest();
+        activeXhr = null;
+
+        
+        if (listModelController.count > 0) {
+            var lastIndex = listModelController.count - 1;
+            var lastItem = listModelController.get(lastIndex);
+            if (lastItem && lastItem.name === "Assistant") {
+                promptArray.push({ "role": "assistant", "content": lastItem.number, "images": [] });
+            }
+        }
+        
+        isLoading = false;
+        isStreaming = false;
     }
 
     function request(prompt) {
+        isStreaming = false;
+        lastSentMessage = prompt;
+
         listModelController.append({
             "name": "User",
             "number": prompt
@@ -160,7 +224,7 @@ PlasmoidItem {
         var provider = getProvider(index);
 
         if (type === "ollama") {
-            ApiClient.requestOllama(
+            activeXhr = ApiClient.requestOllama(
                 currentModel,
                 promptArray,
                 listModelController,
@@ -168,7 +232,7 @@ PlasmoidItem {
                 handleRequestComplete
             );
         } else if (type === "openclaw") {
-            ApiClient.requestOpenAICompatible(
+            activeXhr = ApiClient.requestOpenAICompatible(
                 provider.url,
                 provider.token,
                 "openclaw",
@@ -181,7 +245,7 @@ PlasmoidItem {
                 handleRequestComplete
             );
         } else if (type === "openai-compatible") {
-            ApiClient.requestOpenAICompatible(
+            activeXhr = ApiClient.requestOpenAICompatible(
                 provider.url,
                 provider.token,
                 provider.model,
@@ -370,6 +434,14 @@ PlasmoidItem {
 
             isProviderConfigured: root.isProviderConfigured()
             isLoading: root.isLoading
+            isStreaming: root.isStreaming
+
+            onCancelOrStop: {
+                var restoreText = root.cancelRequest();
+                if (restoreText) {
+                    messageInput.textField.text = restoreText;
+                }
+            }
 
             onSendMessage: function(message) {
                 if (message.trim()) {

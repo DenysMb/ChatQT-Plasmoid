@@ -5,6 +5,8 @@
 
 .pragma library
 
+var _activeXhr = null;
+
 function requestOllama(modelsComboboxCurrentValue, promptArray, listModel, onStreaming, onComplete) {
     const oldLength = listModel.count;
     const url = 'http://127.0.0.1:11434/api/chat';
@@ -15,11 +17,14 @@ function requestOllama(modelsComboboxCurrentValue, promptArray, listModel, onStr
         "messages": promptArray
     });
 
-    let xhr = new XMLHttpRequest();
+    _activeXhr = new XMLHttpRequest();
+    var xhr = _activeXhr;
 
     xhr.open('POST', url, true);
     xhr.setRequestHeader('Content-Type', 'application/json');
     xhr.onreadystatechange = function() {
+        if (xhr.status === 0) return;
+
         const objects = xhr.responseText.split('\n');
         let text = '';
 
@@ -42,12 +47,15 @@ function requestOllama(modelsComboboxCurrentValue, promptArray, listModel, onStr
     };
 
     xhr.onload = function() {
+        if (xhr.status === 0) return;
+
         if (typeof onComplete === 'function') {
             onComplete(oldLength, listModel);
         }
     };
 
     xhr.send(data);
+    return _activeXhr;
 }
 
 function requestOpenAICompatible(baseUrl, token, model, promptArray, thinkingEnabled, extraHeaders, includeV1, listModel, onStreaming, onComplete) {
@@ -70,7 +78,8 @@ function requestOpenAICompatible(baseUrl, token, model, promptArray, thinkingEna
 
     const data = JSON.stringify(requestData);
 
-    let xhr = new XMLHttpRequest();
+    _activeXhr = new XMLHttpRequest();
+    var xhr = _activeXhr;
 
     xhr.open('POST', url, true);
     xhr.setRequestHeader('Content-Type', 'application/json');
@@ -86,6 +95,8 @@ function requestOpenAICompatible(baseUrl, token, model, promptArray, thinkingEna
     let processedLength = 0;
 
     xhr.onreadystatechange = function() {
+        if (xhr.status === 0) return;
+
         if (xhr.readyState === XMLHttpRequest.LOADING || xhr.readyState === XMLHttpRequest.DONE) {
             const response = xhr.responseText;
 
@@ -127,13 +138,28 @@ function requestOpenAICompatible(baseUrl, token, model, promptArray, thinkingEna
         }
 
         if (xhr.readyState === XMLHttpRequest.DONE) {
-            if (typeof onComplete === 'function') {
+            if (xhr.status !== 0 && typeof onComplete === 'function') {
                 onComplete(oldLength, listModel);
             }
         }
     };
 
     xhr.send(data);
+    return _activeXhr;
+}
+
+function abortActiveRequest() {
+    console.log("abortActiveRequest called — _activeXhr:", _activeXhr);
+    if (_activeXhr) {
+        _activeXhr.onreadystatechange = function() {};
+        _activeXhr.onload = function() {};
+        _activeXhr.abort();
+        _activeXhr = null;
+        console.log("abortActiveRequest — aborted and nulled");
+        return true;
+    }
+    console.log("abortActiveRequest — no active XHR to abort");
+    return false;
 }
 
 function getOllamaModels(onSuccess, onError) {
