@@ -67,7 +67,7 @@ PlasmaExtras.PlasmoidHeading {
         Layout.fillWidth: true
 
         PlasmaComponents.ToolButton {
-            icon.name: "contact-new-symbolic"
+            icon.name: "list-add-symbolic"
             text: i18n("New chat")
             display: PlasmaComponents.AbstractButton.IconOnly
             enabled: providerComboBox.count > 0 && !root.isLoading

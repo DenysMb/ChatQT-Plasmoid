@@ -307,8 +307,8 @@ PlasmoidItem {
             onTriggered: Plasmoid.configuration.pin = checked
         },
         PlasmaCore.Action {
-            text: i18n("Clear chat")
-            icon.name: "edit-clear"
+            text: i18n("New chat")
+            icon.name: "list-add-symbolic"
             onTriggered: {
                 listModelController.clear();
                 promptArray = [];
