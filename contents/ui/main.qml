@@ -317,11 +317,19 @@ PlasmoidItem {
     }
 
     function _extractTitle() {
-        var providerName = _getProviderDisplayName(currentProvider);
-        var dateStr = Qt.formatDateTime(new Date(), "dd/MM/yyyy hh:mm");
-        var title = providerName + " - " + i18n("Session from %1", dateStr);
-        console.log("_extractTitle called - provider:", currentProvider, "providerName:", providerName, "title:", title);
-        return title;
+        if (!promptArray || promptArray.length === 0) {
+            return i18n("New Chat");
+        }
+        for (var i = 0; i < promptArray.length; i++) {
+            if (promptArray[i].role === "user" && promptArray[i].content) {
+                var content = promptArray[i].content.trim();
+                if (content.length > 60) {
+                    return content.substring(0, 60) + "...";
+                }
+                return content;
+            }
+        }
+        return i18n("Chat");
     }
 
     function _getDisplayMessages() {
