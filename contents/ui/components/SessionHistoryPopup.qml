@@ -55,10 +55,27 @@ Popup {
             Layout.fillWidth: true
             Layout.margins: Kirigami.Units.smallSpacing
 
+            PlasmaComponents.ToolButton {
+                icon.name: "edit-clear-all-symbolic"
+                text: i18n("Clear All")
+                display: PlasmaComponents.AbstractButton.IconOnly
+                visible: sessionListView.count > 0
+
+                onClicked: {
+                    SessionDB.deleteAllSessions();
+                    root.refreshSessions();
+                }
+
+                PlasmaComponents.ToolTip.text: text
+                PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
+                PlasmaComponents.ToolTip.visible: hovered
+            }
+
             Kirigami.Heading {
                 text: i18n("Chat History")
                 level: 2
                 Layout.fillWidth: true
+                horizontalAlignment: Qt.AlignHCenter
             }
 
             PlasmaComponents.ToolButton {
@@ -145,23 +162,6 @@ Popup {
                 width: parent.width - (Kirigami.Units.largeSpacing * 4)
                 visible: sessionListView.count === 0
                 text: i18n("No saved sessions")
-            }
-        }
-
-        Kirigami.Separator {
-            Layout.fillWidth: true
-            visible: sessionListView.count > 0
-        }
-
-        PlasmaComponents.ToolButton {
-            Layout.fillWidth: true
-            visible: sessionListView.count > 0
-            icon.name: "edit-clear-list"
-            text: i18n("Clear All")
-
-            onClicked: {
-                SessionDB.deleteAllSessions();
-                root.refreshSessions();
             }
         }
     }
