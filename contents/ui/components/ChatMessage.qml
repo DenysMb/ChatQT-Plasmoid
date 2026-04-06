@@ -39,7 +39,7 @@ Kirigami.AbstractCard {
 
             AbstractButton {
                 Layout.fillWidth: true
-                implicitHeight: thinkingHeaderLayout.implicitHeight + Kirigami.Units.smallSpacing * 2
+                implicitHeight: thinkingHeaderLayout.implicitHeight
 
                 contentItem: RowLayout {
                     id: thinkingHeaderLayout
