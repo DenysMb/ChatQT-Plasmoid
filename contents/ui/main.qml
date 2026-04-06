@@ -123,8 +123,10 @@ PlasmoidItem {
         return lastDash > 0 ? parseInt(currentProvider.substring(lastDash + 1)) : 0;
     }
 
-    function handleStreaming(text, oldLength, listModel) {
+    function handleStreaming(text, oldLength, listModel, thinkingText) {
         isStreaming = true;
+
+        console.log("handleStreaming — text length:", text.length, "thinkingText:", typeof thinkingText, thinkingText ? thinkingText.length : "empty");
 
         if (!disableAutoScroll && scrollViewRef && scrollViewRef.ScrollBar) {
             scrollViewRef.ScrollBar.vertical.position = 1 - scrollViewRef.ScrollBar.vertical.size;
@@ -133,11 +135,16 @@ PlasmoidItem {
         if (listModel.count === oldLength) {
             listModel.append({
                 "name": "Assistant",
-                "number": text
+                "number": text,
+                "thinkingContent": thinkingText !== undefined ? thinkingText : ""
             });
+            console.log("handleStreaming — APPENDED thinkingContent:", listModel.get(oldLength).thinkingContent);
         } else {
-            const lastValue = listModel.get(oldLength);
-            lastValue.number = text;
+            listModel.setProperty(oldLength, "number", text);
+            if (thinkingText !== undefined) {
+                listModel.setProperty(oldLength, "thinkingContent", thinkingText);
+            }
+            console.log("handleStreaming — UPDATED thinkingContent:", listModel.get(oldLength).thinkingContent);
         }
     }
 
@@ -214,7 +221,8 @@ PlasmoidItem {
 
         listModelController.append({
             "name": "User",
-            "number": prompt
+            "number": prompt,
+            "thinkingContent": ""
         });
 
         promptArray.push({ "role": "user", "content": prompt, "images": [] });
@@ -337,7 +345,7 @@ PlasmoidItem {
         var messages = [];
         for (var i = 0; i < listModelController.count; i++) {
             var item = listModelController.get(i);
-            messages.push({"name": item.name, "number": item.number});
+            messages.push({"name": item.name, "number": item.number, "thinkingContent": item.thinkingContent || ""});
         }
         return messages;
     }
@@ -394,7 +402,7 @@ PlasmoidItem {
 
         for (var i = 0; i < session.display_messages.length; i++) {
             var msg = session.display_messages[i];
-            listModelController.append({"name": msg.name, "number": msg.number});
+            listModelController.append({"name": msg.name, "number": msg.number, "thinkingContent": msg.thinkingContent || ""});
         }
 
         _sessionRestoreInProgress = false;
@@ -562,6 +570,7 @@ PlasmoidItem {
                 delegate: ChatMessage {
                     messageText: ApiClient.preprocessMarkdown(number)
                     senderName: name
+                    thinkingText: model.thinkingContent || ""
                 }
             }
         }

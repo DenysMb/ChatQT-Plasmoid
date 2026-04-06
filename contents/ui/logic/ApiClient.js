@@ -92,6 +92,7 @@ function requestOpenAICompatible(baseUrl, token, model, promptArray, thinkingEna
     }
 
     let text = '';
+    let thinkingText = '';
     let processedLength = 0;
 
     xhr.onreadystatechange = function() {
@@ -121,11 +122,28 @@ function requestOpenAICompatible(baseUrl, token, model, promptArray, thinkingEna
                             const choices = parsed.choices;
                             if (choices && choices.length > 0) {
                                 const delta = choices[0].delta;
-                                if (delta && delta.content) {
-                                    text += delta.content;
+                                if (delta) {
+                                    let hasUpdate = false;
 
-                                    if (typeof onStreaming === 'function') {
-                                        onStreaming(text, oldLength, listModel);
+                                    if (delta.reasoning_content) {
+                                        thinkingText += delta.reasoning_content;
+                                        hasUpdate = true;
+                                    }
+
+                                    if (delta.reasoning) {
+                                        thinkingText += delta.reasoning;
+                                        hasUpdate = true;
+                                    }
+
+                                    if (delta.content) {
+                                        text += delta.content;
+                                        hasUpdate = true;
+                                    }
+
+                                    console.log("ApiClient delta — content:", !!delta.content, "reasoning_content:", !!delta.reasoning_content, "reasoning:", !!delta.reasoning, "thinkingText len:", thinkingText.length);
+
+                                    if (hasUpdate && typeof onStreaming === 'function') {
+                                        onStreaming(text, oldLength, listModel, thinkingText);
                                     }
                                 }
                             }
