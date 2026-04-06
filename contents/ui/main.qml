@@ -126,8 +126,6 @@ PlasmoidItem {
     function handleStreaming(text, oldLength, listModel, thinkingText) {
         isStreaming = true;
 
-        console.log("handleStreaming — text length:", text.length, "thinkingText:", typeof thinkingText, thinkingText ? thinkingText.length : "empty");
-
         if (!disableAutoScroll && scrollViewRef && scrollViewRef.ScrollBar) {
             scrollViewRef.ScrollBar.vertical.position = 1 - scrollViewRef.ScrollBar.vertical.size;
         }
@@ -138,13 +136,11 @@ PlasmoidItem {
                 "number": text,
                 "thinkingContent": thinkingText !== undefined ? thinkingText : ""
             });
-            console.log("handleStreaming — APPENDED thinkingContent:", listModel.get(oldLength).thinkingContent);
         } else {
             listModel.setProperty(oldLength, "number", text);
             if (thinkingText !== undefined) {
                 listModel.setProperty(oldLength, "thinkingContent", thinkingText);
             }
-            console.log("handleStreaming — UPDATED thinkingContent:", listModel.get(oldLength).thinkingContent);
         }
     }
 

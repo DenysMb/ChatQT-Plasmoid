@@ -140,8 +140,6 @@ function requestOpenAICompatible(baseUrl, token, model, promptArray, thinkingEna
                                         hasUpdate = true;
                                     }
 
-                                    console.log("ApiClient delta — content:", !!delta.content, "reasoning_content:", !!delta.reasoning_content, "reasoning:", !!delta.reasoning, "thinkingText len:", thinkingText.length);
-
                                     if (hasUpdate && typeof onStreaming === 'function') {
                                         onStreaming(text, oldLength, listModel, thinkingText);
                                     }

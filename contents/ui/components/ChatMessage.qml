@@ -15,7 +15,7 @@ Kirigami.AbstractCard {
     property string messageText: ""
     property string senderName: ""
     property string thinkingText: ""
-    property bool thinkingExpanded: true
+    property bool thinkingExpanded: false
 
     readonly property bool isUser: senderName === "User"
 
