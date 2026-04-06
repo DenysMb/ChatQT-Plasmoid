@@ -33,8 +33,17 @@ Popup {
     function refreshSessions() {
         sessionListModel.clear();
         var sessions = SessionDB.listSessions();
+        console.log("SessionHistoryPopup - loaded sessions:", sessions.length);
         for (var i = 0; i < sessions.length; i++) {
-            sessionListModel.append(sessions[i]);
+            console.log("Session", i, "id:", sessions[i].id, "title:", sessions[i].title);
+            sessionListModel.append({
+                "session_id": sessions[i].id,
+                "session_title": sessions[i].title,
+                "session_provider": sessions[i].provider,
+                "session_model": sessions[i].model,
+                "session_created_at": sessions[i].created_at,
+                "session_updated_at": sessions[i].updated_at
+            });
         }
     }
 
@@ -84,50 +93,52 @@ Popup {
             }
 
             delegate: PlasmaComponents.ItemDelegate {
-                width: sessionListView.width
-                highlighted: model.id === root.currentSessionId
+            width: sessionListView.width
+            property string delegateSessionId: session_id
+            highlighted: delegateSessionId === root.currentSessionId
 
-                contentItem: RowLayout {
-                    spacing: Kirigami.Units.smallSpacing
+            contentItem: RowLayout {
+                spacing: Kirigami.Units.smallSpacing
 
-                    ColumnLayout {
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 0
+
+                    Label {
+                        text: session_title || i18n("Untitled session")
+                        elide: Text.ElideRight
                         Layout.fillWidth: true
-                        spacing: 0
-
-                        Label {
-                            text: model.title || i18n("Untitled session")
-                            elide: Text.ElideRight
-                            Layout.fillWidth: true
-                            font.bold: true
-                        }
-
-                        Label {
-                            text: Qt.formatDateTime(new Date(model.updated_at), "dd MMM yyyy, hh:mm")
-                            color: Kirigami.Theme.disabledTextColor
-                            font.pointSize: Kirigami.Theme.smallFont.pointSize
-                        }
+                        font.bold: true
                     }
 
-                    PlasmaComponents.ToolButton {
-                        icon.name: "edit-delete-symbolic"
-                        display: PlasmaComponents.AbstractButton.IconOnly
-
-                        onClicked: {
-                            root.deleteSession(model.id);
-                            root.refreshSessions();
-                        }
-
-                        PlasmaComponents.ToolTip.text: i18n("Delete")
-                        PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
-                        PlasmaComponents.ToolTip.visible: hovered
+                    Label {
+                        text: Qt.formatDateTime(new Date(session_updated_at), "dd MMM yyyy, hh:mm")
+                        color: Kirigami.Theme.disabledTextColor
+                        font.pointSize: Kirigami.Theme.smallFont.pointSize
                     }
                 }
 
-                onClicked: {
-                    root.restoreSession(model.id);
-                    root.close();
+                PlasmaComponents.ToolButton {
+                    icon.name: "edit-delete-symbolic"
+                    display: PlasmaComponents.AbstractButton.IconOnly
+
+                    onClicked: {
+                        root.deleteSession(delegateSessionId);
+                        root.refreshSessions();
+                    }
+
+                    PlasmaComponents.ToolTip.text: i18n("Delete")
+                    PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
+                    PlasmaComponents.ToolTip.visible: hovered
                 }
             }
+
+            onClicked: {
+                console.log("delegate clicked - delegateSessionId:", delegateSessionId);
+                root.restoreSession(delegateSessionId);
+                root.close();
+            }
+        }
 
             Kirigami.PlaceholderMessage {
                 anchors.centerIn: parent

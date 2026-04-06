@@ -300,14 +300,28 @@ PlasmoidItem {
         return provider && provider.thinkingEnabled !== undefined ? provider.thinkingEnabled : true;
     }
 
-    function _extractTitle(prompts) {
-        for (var i = 0; i < prompts.length; i++) {
-            if (prompts[i].role === "user") {
-                var content = prompts[i].content;
-                return content.length > 80 ? content.substring(0, 80) + "..." : content;
-            }
-        }
-        return i18n("Chat");
+    function _getProviderDisplayName(providerId) {
+        var lastDash = providerId.lastIndexOf("-");
+        if (lastDash < 1) return providerId;
+        
+        var type = providerId.substring(0, lastDash);
+        var index = parseInt(providerId.substring(lastDash + 1));
+        var provider = providers[index];
+        
+        if (!provider) return type;
+        
+        if (provider.displayName) return provider.displayName;
+        if (type === "ollama") return "Ollama";
+        if (type === "openclaw") return "OpenClaw";
+        return type;
+    }
+
+    function _extractTitle() {
+        var providerName = _getProviderDisplayName(currentProvider);
+        var dateStr = Qt.formatDateTime(new Date(), "dd/MM/yyyy hh:mm");
+        var title = providerName + " - " + i18n("Session from %1", dateStr);
+        console.log("_extractTitle called - provider:", currentProvider, "providerName:", providerName, "title:", title);
+        return title;
     }
 
     function _getDisplayMessages() {
@@ -321,16 +335,25 @@ PlasmoidItem {
     }
 
     function autoSaveSession() {
-        if (_sessionRestoreInProgress) return;
-        if (promptArray.length === 0) return;
+        if (_sessionRestoreInProgress) {
+            console.log("autoSaveSession - skipped (restore in progress)");
+            return;
+        }
+        if (promptArray.length === 0) {
+            console.log("autoSaveSession - skipped (empty promptArray)");
+            return;
+        }
+        var title = _extractTitle();
+        console.log("autoSaveSession - saving with title:", title);
         currentSessionId = SessionDB.saveSession(
             currentSessionId,
             currentProvider,
             currentModel,
             promptArray,
             _getDisplayMessages(),
-            _extractTitle(promptArray)
+            title
         );
+        console.log("autoSaveSession - saved with id:", currentSessionId);
     }
 
     function saveAndClearSession() {
@@ -342,14 +365,17 @@ PlasmoidItem {
     }
 
     function restoreSession(sessionId) {
+        console.log("restoreSession called with id:", sessionId);
         autoSaveSession()
         _sessionRestoreInProgress = true;
 
         var session = SessionDB.loadSession(sessionId);
+        console.log("restoreSession - loaded session:", session ? "found" : "not found");
         if (!session) {
             _sessionRestoreInProgress = false;
             return;
         }
+        console.log("restoreSession - session has", session.display_messages.length, "display messages");
 
         listModelController.clear();
 
@@ -364,6 +390,7 @@ PlasmoidItem {
         }
 
         _sessionRestoreInProgress = false;
+        console.log("restoreSession - done");
     }
 
     function deleteSessionFromHistory(sessionId) {

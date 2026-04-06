@@ -45,6 +45,8 @@ function saveSession(id, provider, model, promptArray, displayMessages, title) {
     var promptStr = JSON.stringify(promptArray);
     var displayStr = JSON.stringify(displayMessages);
 
+    console.log("SessionDB.saveSession - id:", sessionId, "isNew:", isNew, "title:", title);
+
     db.transaction(function(tx) {
         if (isNew) {
             tx.executeSql(
@@ -71,6 +73,7 @@ function saveSession(id, provider, model, promptArray, displayMessages, title) {
 }
 
 function loadSession(id) {
+    console.log("SessionDB.loadSession - loading id:", id);
     var db = _getDB();
     var result = null;
 
@@ -88,6 +91,9 @@ function loadSession(id) {
                 display_messages: JSON.parse(row.display_messages),
                 title: row.title
             };
+            console.log("SessionDB.loadSession - found session, title:", result.title, "messages:", result.display_messages.length);
+        } else {
+            console.log("SessionDB.loadSession - session not found");
         }
     });
 
@@ -100,8 +106,11 @@ function listSessions() {
 
     db.readTransaction(function(tx) {
         var rs = tx.executeSql('SELECT id, provider, model, created_at, updated_at, title FROM sessions ORDER BY updated_at DESC');
+        console.log("SessionDB.listSessions - found", rs.rows.length, "sessions");
         for (var i = 0; i < rs.rows.length; i++) {
-            sessions.push(rs.rows.item(i));
+            var row = rs.rows.item(i);
+            sessions.push(row);
+            console.log("SessionDB.listSessions - session", i, "id:", row.id, "title:", row.title);
         }
     });
 
