@@ -17,6 +17,7 @@ PlasmaExtras.PlasmoidHeading {
     signal providerSelected(string provider, string model)
     signal pinToggled(bool checked)
     signal thinkingToggled(bool enabled)
+    signal sessionHistoryRequested
 
     property bool isLoading: false
     property string currentProvider: "ollama-0"
@@ -74,6 +75,19 @@ PlasmaExtras.PlasmoidHeading {
             hoverEnabled: providerComboBox.count > 0 && !root.isLoading
 
             onClicked: root.clearChatRequested()
+
+            PlasmaComponents.ToolTip.text: text
+            PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay
+            PlasmaComponents.ToolTip.visible: hovered
+        }
+
+        PlasmaComponents.ToolButton {
+            icon.name: "document-open-recent"
+            text: i18n("History")
+            display: PlasmaComponents.AbstractButton.IconOnly
+            enabled: !root.isLoading
+
+            onClicked: root.sessionHistoryRequested()
 
             PlasmaComponents.ToolTip.text: text
             PlasmaComponents.ToolTip.delay: Kirigami.Units.toolTipDelay

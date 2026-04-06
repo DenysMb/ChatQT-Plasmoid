@@ -13,6 +13,7 @@ import org.kde.plasma.plasmoid
 
 import "components"
 import "logic/ApiClient.js" as ApiClient
+import "logic/SessionDB.js" as SessionDB
 
 PlasmoidItem {
     id: root
@@ -31,6 +32,8 @@ PlasmoidItem {
     property bool isStreaming: false
     property string lastSentMessage: ""
     property var activeXhr: null
+    property string currentSessionId: ""
+    property bool _sessionRestoreInProgress: false
 
     property var providers: {
         try {
@@ -152,6 +155,7 @@ PlasmoidItem {
         isLoading = false;
         activeXhr = null;
         isStreaming = false;
+        autoSaveSession()
     }
 
     function cancelRequest() {
@@ -180,6 +184,7 @@ PlasmoidItem {
 
         isLoading = false;
         isStreaming = false;
+        autoSaveSession()
         console.log("CANCEL done — isLoading:", isLoading, "isStreaming:", isStreaming);
         return restoreText;
     }
@@ -200,6 +205,7 @@ PlasmoidItem {
         
         isLoading = false;
         isStreaming = false;
+        autoSaveSession()
     }
 
     function request(prompt) {
@@ -294,7 +300,81 @@ PlasmoidItem {
         return provider && provider.thinkingEnabled !== undefined ? provider.thinkingEnabled : true;
     }
 
+    function _extractTitle(prompts) {
+        for (var i = 0; i < prompts.length; i++) {
+            if (prompts[i].role === "user") {
+                var content = prompts[i].content;
+                return content.length > 80 ? content.substring(0, 80) + "..." : content;
+            }
+        }
+        return i18n("Chat");
+    }
+
+    function _getDisplayMessages() {
+        if (!listModelController) return [];
+        var messages = [];
+        for (var i = 0; i < listModelController.count; i++) {
+            var item = listModelController.get(i);
+            messages.push({"name": item.name, "number": item.number});
+        }
+        return messages;
+    }
+
+    function autoSaveSession() {
+        if (_sessionRestoreInProgress) return;
+        if (promptArray.length === 0) return;
+        currentSessionId = SessionDB.saveSession(
+            currentSessionId,
+            currentProvider,
+            currentModel,
+            promptArray,
+            _getDisplayMessages(),
+            _extractTitle(promptArray)
+        );
+    }
+
+    function saveAndClearSession() {
+        autoSaveSession();
+        if (listModelController) listModelController.clear();
+        promptArray = [];
+        currentSessionId = "";
+        parentMessageId = "";
+    }
+
+    function restoreSession(sessionId) {
+        autoSaveSession()
+        _sessionRestoreInProgress = true;
+
+        var session = SessionDB.loadSession(sessionId);
+        if (!session) {
+            _sessionRestoreInProgress = false;
+            return;
+        }
+
+        listModelController.clear();
+
+        currentSessionId = sessionId;
+        currentProvider = session.provider;
+        currentModel = session.model;
+        promptArray = session.prompt_array;
+
+        for (var i = 0; i < session.display_messages.length; i++) {
+            var msg = session.display_messages[i];
+            listModelController.append({"name": msg.name, "number": msg.number});
+        }
+
+        _sessionRestoreInProgress = false;
+    }
+
+    function deleteSessionFromHistory(sessionId) {
+        SessionDB.deleteSession(sessionId);
+        if (sessionId === currentSessionId) {
+            currentSessionId = "";
+        }
+    }
+
     Component.onCompleted: {
+        SessionDB.initDB();
         initializeProvider();
     }
 
@@ -310,8 +390,7 @@ PlasmoidItem {
             text: i18n("New chat")
             icon.name: "list-add-symbolic"
             onTriggered: {
-                listModelController.clear();
-                promptArray = [];
+                saveAndClearSession()
             }
         },
         PlasmaCore.Action {
@@ -364,17 +443,19 @@ PlasmoidItem {
             pinChecked: Plasmoid.configuration.pin || false
 
             onClearChatRequested: {
-                listModelController.clear();
-                promptArray = [];
+                saveAndClearSession()
             }
 
             onProviderSelected: function(provider, model) {
+                autoSaveSession()
                 root.currentProvider = provider;
                 Plasmoid.configuration.provider = provider;
                 if (getProviderType() === "ollama") {
                     root.currentModel = model;
                 }
-                listModelController.clear();
+                if (listModelController) listModelController.clear();
+                promptArray = [];
+                currentSessionId = "";
             }
 
             onPinToggled: function(checked) {
@@ -383,6 +464,29 @@ PlasmoidItem {
 
             onThinkingToggled: function(enabled) {
                 root.thinkingEnabled = enabled;
+            }
+
+            onSessionHistoryRequested: {
+                sessionHistoryPopup.open()
+            }
+        }
+
+        SessionHistoryPopup {
+            id: sessionHistoryPopup
+            parent: root.fullRepresentation
+            currentSessionId: root.currentSessionId
+
+            onRestoreSession: function(sessionId) {
+                root.restoreSession(sessionId)
+            }
+
+            onDeleteSession: function(sessionId) {
+                root.deleteSessionFromHistory(sessionId)
+                sessionHistoryPopup.refreshSessions()
+            }
+
+            onNewChatRequested: {
+                root.saveAndClearSession()
             }
         }
 
