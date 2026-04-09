@@ -11,6 +11,7 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 import org.kde.kcmutils as KCM
 import "components" as COMPONENTS
+import "logic/ApiClient.js" as ApiClient
 
 KCM.SimpleKCM {
     id: root
@@ -230,11 +231,47 @@ KCM.SimpleKCM {
         Kirigami.Dialog {
             id: editSheet
             title: i18nc("@title:window", "Edit Provider")
+            padding: Kirigami.Units.largeSpacing
+            width: Kirigami.Units.gridUnit * 32
 
             property int editingIndex: -1
             property string providerType: "ollama"
+            property string testState: "idle"
+            property int testModelCount: 0
+            property int testErrorStatus: 0
+            property string testErrorStatusText: ""
+            property var testXhr: null
+
+            Timer {
+                id: testTimeoutTimer
+                interval: 10000
+                onTriggered: {
+                    if (editSheet.testXhr) {
+                        editSheet.testXhr.onreadystatechange = function() {};
+                        editSheet.testXhr.abort();
+                        editSheet.testXhr = null;
+                    }
+                    editSheet.testState = "error";
+                    editSheet.testErrorStatus = 0;
+                    editSheet.testErrorStatusText = "TIMEOUT";
+                }
+            }
+
+            function resetTestState() {
+                if (testXhr) {
+                    testXhr.onreadystatechange = function() {};
+                    testXhr.abort();
+                    testXhr = null;
+                }
+                testTimeoutTimer.stop();
+                testState = "idle";
+                testModelCount = 0;
+                testErrorStatus = 0;
+                testErrorStatusText = "";
+            }
 
             function openNewProvider(type) {
+                resetTestState();
                 editingIndex = -1
                 providerType = type
                 displayNameField.text = getDefaultDisplayName(type)
@@ -246,6 +283,7 @@ KCM.SimpleKCM {
             }
 
             function openProvider(index) {
+                resetTestState();
                 editingIndex = index
                 var provider = providersModel.get(index)
                 providerType = provider.type || "ollama"
@@ -258,6 +296,10 @@ KCM.SimpleKCM {
             }
 
             standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
+
+            onClosed: {
+                resetTestState();
+            }
 
             onAccepted: {
                 var provider = {
@@ -277,40 +319,166 @@ KCM.SimpleKCM {
                 }
             }
 
-            Kirigami.FormLayout {
+            ColumnLayout {
+                spacing: Kirigami.Units.smallSpacing
+
+                QQC2.Label {
+                    text: i18nc("@label:textbox", "Display Name:")
+                    font: Kirigami.Theme.smallFont
+                    color: Kirigami.Theme.disabledTextColor
+                }
+
                 QQC2.TextField {
                     id: displayNameField
-                    Kirigami.FormData.label: i18nc("@label:textbox", "Display Name:")
                     Layout.fillWidth: true
                     placeholderText: i18nc("@info:placeholder", "e.g., OpenClaw Local")
                 }
 
-                QQC2.TextField {
-                    id: urlField
-                    Kirigami.FormData.label: i18nc("@label:textbox", "API URL:")
-                    Layout.fillWidth: true
-                    placeholderText: editSheet.providerType === "ollama" ? "http://localhost:11434" : 
-                                     editSheet.providerType === "openclaw" ? "http://127.0.0.1:18789" : 
-                                     "https://api.example.com/v1"
+                QQC2.Label {
+                    text: i18nc("@label:textbox", "API URL:")
+                    font: Kirigami.Theme.smallFont
+                    color: Kirigami.Theme.disabledTextColor
                 }
 
                 QQC2.TextField {
-                    id: tokenField
-                    Kirigami.FormData.label: i18nc("@label:textbox", "Token:")
+                    id: urlField
                     Layout.fillWidth: true
-                    placeholderText: i18nc("@info:placeholder", "Enter your API token")
-                    echoMode: QQC2.TextField.Password
+                    placeholderText: editSheet.providerType === "ollama" ? "http://localhost:11434" :
+                                     editSheet.providerType === "openclaw" ? "http://127.0.0.1:18789" :
+                                     "https://api.example.com/v1"
+                    onTextChanged: editSheet.resetTestState()
+                }
+
+                QQC2.Label {
+                    text: i18nc("@label:textbox", "Token:")
+                    font: Kirigami.Theme.smallFont
+                    color: Kirigami.Theme.disabledTextColor
                     visible: editSheet.providerType !== "ollama"
                 }
 
                 QQC2.TextField {
+                    id: tokenField
+                    Layout.fillWidth: true
+                    placeholderText: i18nc("@info:placeholder", "Enter your API token")
+                    echoMode: QQC2.TextField.Password
+                    visible: editSheet.providerType !== "ollama"
+                    onTextChanged: editSheet.resetTestState()
+                }
+
+                QQC2.Label {
+                    text: i18nc("@label:textbox", "Model:")
+                    font: Kirigami.Theme.smallFont
+                    color: Kirigami.Theme.disabledTextColor
+                    visible: editSheet.providerType === "openai-compatible"
+                }
+
+                QQC2.TextField {
                     id: modelField
-                    Kirigami.FormData.label: i18nc("@label:textbox", "Model:")
                     Layout.fillWidth: true
                     placeholderText: i18nc("@info:placeholder", "e.g., gpt-4, claude-3-sonnet")
                     visible: editSheet.providerType === "openai-compatible"
+                    onTextChanged: editSheet.resetTestState()
+                }
+
+                Kirigami.InlineMessage {
+                    id: testResultMessage
+                    Layout.fillWidth: true
+                    Layout.topMargin: Kirigami.Units.smallSpacing
+                    visible: true
+                    type: {
+                        if (editSheet.testState === "idle") return Kirigami.MessageType.Information;
+                        if (editSheet.testState === "testing") return Kirigami.MessageType.Information;
+                        if (editSheet.testState === "success") return Kirigami.MessageType.Positive;
+                        if (editSheet.testState === "error") return Kirigami.MessageType.Error;
+                        return Kirigami.MessageType.Information;
+                    }
+                    text: {
+                        if (editSheet.testState === "idle") return i18nc("@info", "Connection has not been tested.");
+                        if (editSheet.testState === "testing") return i18nc("@info", "Testing connection…");
+                        if (editSheet.testState === "success") {
+                            if (editSheet.testModelCount > 0) return i18nc("@info", "Connection successful. %1 model(s) available.").arg(editSheet.testModelCount);
+                            return i18nc("@info", "Connection successful!");
+                        }
+                        if (editSheet.testErrorStatusText === "TIMEOUT") return i18nc("@info", "Connection timed out after 10 seconds.");
+                        if (editSheet.testErrorStatusText === "NETWORK_ERROR") return i18nc("@info", "Could not reach the server. Check the URL and network connection.");
+                        if (editSheet.testErrorStatusText === "UNAUTHORIZED") return i18nc("@info", "Authentication failed. Check your API token.");
+                        if (editSheet.testErrorStatusText === "NOT_FOUND") return i18nc("@info", "Server not found at this URL. Check the API URL.");
+                        if (editSheet.testErrorStatusText === "EMPTY_URL") return i18nc("@info", "Please enter an API URL before testing.");
+                        if (editSheet.testErrorStatusText === "EMPTY_TOKEN") return i18nc("@info", "Please enter an API token before testing.");
+                        if (editSheet.testErrorStatusText === "EMPTY_MODEL") return i18nc("@info", "Please enter a model name before testing.");
+                        if (editSheet.testErrorStatus > 0) return i18nc("@info", "Server returned error %1: %2").arg(editSheet.testErrorStatus).arg(editSheet.testErrorStatusText);
+                        return i18nc("@info", "Unknown connection error.");
+                    }
+                    actions: [
+                        Kirigami.Action {
+                            text: i18nc("@action:button", "Test Now")
+                            visible: editSheet.testState === "idle"
+                            onTriggered: editSheet.runTest()
+                        }
+                    ]
                 }
             }
+
+            function runTest() {
+                resetTestState();
+
+                if (!urlField.text.trim()) {
+                    testState = "error";
+                    testErrorStatusText = "EMPTY_URL";
+                    return;
+                }
+
+                if (editSheet.providerType !== "ollama" && !tokenField.text.trim()) {
+                    testState = "error";
+                    testErrorStatusText = "EMPTY_TOKEN";
+                    return;
+                }
+
+                if (editSheet.providerType === "openai-compatible" && !modelField.text.trim()) {
+                    testState = "error";
+                    testErrorStatusText = "EMPTY_MODEL";
+                    return;
+                }
+
+                testState = "testing";
+
+                var baseUrl = urlField.text.trim();
+                var token = tokenField.text.trim();
+                var model = modelField.text.trim();
+                var extraHeaders = null;
+                var includeV1 = false;
+
+                if (editSheet.providerType === "openclaw") {
+                    extraHeaders = { "x-openclaw-agent-id": "main" };
+                    includeV1 = true;
+                }
+
+                testXhr = ApiClient.testConnection(
+                    editSheet.providerType,
+                    baseUrl,
+                    token,
+                    model,
+                    extraHeaders,
+                    includeV1,
+                    function(result) {
+                        testTimeoutTimer.stop();
+                        testXhr = null;
+                        testState = "success";
+                        testModelCount = result.modelCount;
+                    },
+                    function(errorInfo) {
+                        testTimeoutTimer.stop();
+                        testXhr = null;
+                        testState = "error";
+                        testErrorStatus = errorInfo.status;
+                        testErrorStatusText = errorInfo.statusText;
+                    }
+                );
+
+                testTimeoutTimer.start();
+            }
+
+
         }
     }
 }

@@ -67,7 +67,7 @@ PlasmaExtras.PlasmoidHeading {
     contentItem: RowLayout {
         Layout.fillWidth: true
 
-        PlasmaComponents.ToolButton {
+        PlasmaComponents.Button {
             icon.name: "list-add-symbolic"
             text: i18n("New chat")
             display: PlasmaComponents.AbstractButton.IconOnly
@@ -81,7 +81,7 @@ PlasmaExtras.PlasmoidHeading {
             PlasmaComponents.ToolTip.visible: hovered
         }
 
-        PlasmaComponents.ToolButton {
+        PlasmaComponents.Button {
             icon.name: "document-open-recent"
             text: i18n("History")
             display: PlasmaComponents.AbstractButton.IconOnly
@@ -155,7 +155,7 @@ PlasmaExtras.PlasmoidHeading {
             PlasmaComponents.ToolTip.visible: hovered
         }
 
-        PlasmaComponents.ToolButton {
+        PlasmaComponents.Button {
             id: pinButton
             checkable: true
             checked: root.pinChecked

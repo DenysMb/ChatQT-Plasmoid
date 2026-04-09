@@ -233,8 +233,11 @@ PlasmoidItem {
         var index = getProviderIndex();
         var provider = getProvider(index);
 
+        var ollamaUrl = (provider && provider.url) ? provider.url : "http://localhost:11434";
+
         if (type === "ollama") {
             activeXhr = ApiClient.requestOllama(
+                ollamaUrl,
                 currentModel,
                 promptArray,
                 listModelController,
@@ -271,7 +274,10 @@ PlasmoidItem {
     }
 
     function getModels() {
+        var ollamaProvider = getProvider(getProviderIndex());
+        var ollamaUrl = (ollamaProvider && ollamaProvider.url) ? ollamaProvider.url : "http://localhost:11434";
         ApiClient.getOllamaModels(
+            ollamaUrl,
             function(models) {
                 if (models.length) {
                     hasLocalModel = true;
