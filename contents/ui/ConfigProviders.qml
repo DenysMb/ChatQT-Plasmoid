@@ -124,7 +124,7 @@ KCM.SimpleKCM {
         var icons = {
             "ollama": "drive-harddisk-symbolic",
             "openclaw": "network-server-symbolic",
-            "openai-compatible": "cloud-symbolic"
+            "openai-compatible": "weather-cloudy-symbolic"
         }
         return icons[type] || "applications-internet-symbolic"
     }
@@ -196,7 +196,7 @@ KCM.SimpleKCM {
         Kirigami.Dialog {
             id: addSheet
             title: i18nc("@title:window", "Add Provider")
-            width: parent.width - Kirigami.Units.largeSpacing * 4
+            width: Kirigami.Units.gridUnit * 32
             padding: Kirigami.Units.largeSpacing
 
             standardButtons: Kirigami.Dialog.Cancel
@@ -208,7 +208,7 @@ KCM.SimpleKCM {
                     model: [
                         { type: "ollama", name: "Ollama", icon: "drive-harddisk-symbolic", desc: "Local Ollama instance" },
                         { type: "openclaw", name: "OpenClaw", icon: "network-server-symbolic", desc: "OpenClaw server" },
-                        { type: "openai-compatible", name: "OpenAI-Compatible", icon: "cloud-symbolic", desc: "Custom OpenAI-compatible API" }
+                        { type: "openai-compatible", name: "OpenAI-Compatible", icon: "weather-cloudy-symbolic", desc: "Custom OpenAI-compatible API" }
                     ]
 
                     QQC2.Button {
