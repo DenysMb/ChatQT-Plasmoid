@@ -242,13 +242,16 @@ KCM.SimpleKCM {
             property string testErrorStatusText: ""
             property var testXhr: null
 
+            property int testTimeoutMs: 10000
+
             Timer {
                 id: testTimeoutTimer
-                interval: 10000
+                interval: editSheet.testTimeoutMs
                 onTriggered: {
-                    if (editSheet.testXhr) {
-                        editSheet.testXhr.onreadystatechange = function() {};
-                        editSheet.testXhr.abort();
+                    var xhr = editSheet.testXhr;
+                    if (xhr) {
+                        xhr.onreadystatechange = function() {};
+                        xhr.abort();
                         editSheet.testXhr = null;
                     }
                     editSheet.testState = "error";
@@ -258,9 +261,12 @@ KCM.SimpleKCM {
             }
 
             function resetTestState() {
-                if (testXhr) {
-                    testXhr.onreadystatechange = function() {};
-                    testXhr.abort();
+                var xhr = testXhr;
+                if (xhr) {
+                    if (xhr.readyState !== XMLHttpRequest.DONE) {
+                        xhr.onreadystatechange = function() {};
+                        xhr.abort();
+                    }
                     testXhr = null;
                 }
                 testTimeoutTimer.stop();
@@ -406,6 +412,7 @@ KCM.SimpleKCM {
                         if (editSheet.testErrorStatusText === "EMPTY_URL") return i18nc("@info", "Please enter an API URL before testing.");
                         if (editSheet.testErrorStatusText === "EMPTY_TOKEN") return i18nc("@info", "Please enter an API token before testing.");
                         if (editSheet.testErrorStatusText === "EMPTY_MODEL") return i18nc("@info", "Please enter a model name before testing.");
+                        if (editSheet.testErrorStatusText === "INVALID_URL") return i18nc("@info", "URL must start with http:// or https://.");
                         if (editSheet.testErrorStatus > 0) return i18nc("@info", "Server returned error %1: %2").arg(editSheet.testErrorStatus).arg(editSheet.testErrorStatusText);
                         return i18nc("@info", "Unknown connection error.");
                     }
@@ -425,6 +432,12 @@ KCM.SimpleKCM {
                 if (!urlField.text.trim()) {
                     testState = "error";
                     testErrorStatusText = "EMPTY_URL";
+                    return;
+                }
+
+                if (!/^https?:\/\//i.test(urlField.text.trim())) {
+                    testState = "error";
+                    testErrorStatusText = "INVALID_URL";
                     return;
                 }
 
@@ -477,7 +490,6 @@ KCM.SimpleKCM {
 
                 testTimeoutTimer.start();
             }
-
 
         }
     }

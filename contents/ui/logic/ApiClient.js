@@ -7,9 +7,13 @@
 
 var _activeXhr = null;
 
+function normalizeUrl(url) {
+    return url.replace(/\/$/, '');
+}
+
 function requestOllama(baseUrl, modelsComboboxCurrentValue, promptArray, listModel, onStreaming, onComplete) {
     const oldLength = listModel.count;
-    const url = baseUrl.replace(/\/$/, '') + '/api/chat';
+    const url = normalizeUrl(baseUrl) + '/api/chat';
     const data = JSON.stringify({
         "model": modelsComboboxCurrentValue,
         "keep_alive": "5m",
@@ -60,7 +64,7 @@ function requestOllama(baseUrl, modelsComboboxCurrentValue, promptArray, listMod
 
 function requestOpenAICompatible(baseUrl, token, model, promptArray, thinkingEnabled, extraHeaders, includeV1, listModel, onStreaming, onComplete) {
     const oldLength = listModel.count;
-    let url = baseUrl.replace(/\/$/, '');
+    let url = normalizeUrl(baseUrl);
     if (includeV1) {
         url += '/v1';
     }
@@ -179,7 +183,7 @@ function abortActiveRequest() {
 }
 
 function getOllamaModels(baseUrl, onSuccess, onError) {
-    const url = baseUrl.replace(/\/$/, '') + '/api/tags';
+    const url = normalizeUrl(baseUrl) + '/api/tags';
 
     let xhr = new XMLHttpRequest();
 
@@ -189,10 +193,17 @@ function getOllamaModels(baseUrl, onSuccess, onError) {
     xhr.onreadystatechange = function() {
         if (xhr.readyState === XMLHttpRequest.DONE) {
             if (xhr.status === 200) {
-                const objects = JSON.parse(xhr.responseText).models;
-                const models = objects.map(object => object.model);
-                if (typeof onSuccess === 'function') {
-                    onSuccess(models);
+                try {
+                    var response = JSON.parse(xhr.responseText);
+                    var objects = response.models || [];
+                    var models = objects.map(function(object) { return object.model; });
+                    if (typeof onSuccess === 'function') {
+                        onSuccess(models);
+                    }
+                } catch (e) {
+                    if (typeof onError === 'function') {
+                        onError(xhr.status, "PARSE_ERROR");
+                    }
                 }
             } else {
                 if (typeof onError === 'function') {
@@ -206,13 +217,13 @@ function getOllamaModels(baseUrl, onSuccess, onError) {
 }
 
 function testConnection(providerType, baseUrl, token, model, extraHeaders, includeV1, onSuccess, onError) {
-    var cleanUrl = baseUrl.replace(/\/$/, '');
+    var cleanUrl = normalizeUrl(baseUrl);
 
-    if (providerType === 'ollama') {
-        var url = cleanUrl + '/api/tags';
+    if (providerType === "ollama") {
+        var url = cleanUrl + "/api/tags";
         var xhr = new XMLHttpRequest();
-        xhr.open('GET', url, true);
-        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.open("GET", url, true);
+        xhr.setRequestHeader("Content-Type", "application/json");
 
         xhr.onreadystatechange = function() {
             if (xhr.readyState === XMLHttpRequest.DONE) {
@@ -220,19 +231,20 @@ function testConnection(providerType, baseUrl, token, model, extraHeaders, inclu
                     try {
                         var response = JSON.parse(xhr.responseText);
                         var modelCount = response.models ? response.models.length : 0;
-                        if (typeof onSuccess === 'function') {
+                        if (typeof onSuccess === "function") {
                             onSuccess({ modelCount: modelCount });
                         }
                     } catch (e) {
-                        if (typeof onSuccess === 'function') {
+                        if (typeof onSuccess === "function") {
                             onSuccess({ modelCount: 0 });
                         }
                     }
                 } else {
-                    if (typeof onError === 'function') {
-                        var statusText = xhr.statusText || 'UNKNOWN';
-                        if (xhr.status === 0) statusText = 'NETWORK_ERROR';
-                        else if (xhr.status === 401) statusText = 'UNAUTHORIZED';
+                    if (typeof onError === "function") {
+                        var statusText = xhr.statusText || "UNKNOWN";
+                        if (xhr.status === 0) statusText = "NETWORK_ERROR";
+                        else if (xhr.status === 401) statusText = "UNAUTHORIZED";
+                        else if (xhr.status === 404) statusText = "NOT_FOUND";
                         onError({ status: xhr.status, statusText: statusText });
                     }
                 }
@@ -244,10 +256,10 @@ function testConnection(providerType, baseUrl, token, model, extraHeaders, inclu
     }
 
     var url = cleanUrl;
-    if (includeV1 && !cleanUrl.endsWith('/v1')) {
-        url = cleanUrl + '/v1';
+    if (includeV1 && !cleanUrl.endsWith("/v1")) {
+        url = cleanUrl + "/v1";
     }
-    url += '/chat/completions';
+    url += "/chat/completions";
 
     var data = JSON.stringify({
         "model": model,
@@ -256,10 +268,10 @@ function testConnection(providerType, baseUrl, token, model, extraHeaders, inclu
     });
 
     var xhr = new XMLHttpRequest();
-    xhr.open('POST', url, true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.open("POST", url, true);
+    xhr.setRequestHeader("Content-Type", "application/json");
     if (token) {
-        xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+        xhr.setRequestHeader("Authorization", "Bearer " + token);
     }
 
     if (extraHeaders) {
@@ -272,15 +284,15 @@ function testConnection(providerType, baseUrl, token, model, extraHeaders, inclu
     xhr.onreadystatechange = function() {
         if (xhr.readyState === XMLHttpRequest.DONE) {
             if (xhr.status === 200) {
-                if (typeof onSuccess === 'function') {
+                if (typeof onSuccess === "function") {
                     onSuccess({ modelCount: 0 });
                 }
             } else {
-                if (typeof onError === 'function') {
-                    var statusText = xhr.statusText || 'UNKNOWN';
-                    if (xhr.status === 0) statusText = 'NETWORK_ERROR';
-                    else if (xhr.status === 401) statusText = 'UNAUTHORIZED';
-                    else if (xhr.status === 404) statusText = 'NOT_FOUND';
+                if (typeof onError === "function") {
+                    var statusText = xhr.statusText || "UNKNOWN";
+                    if (xhr.status === 0) statusText = "NETWORK_ERROR";
+                    else if (xhr.status === 401) statusText = "UNAUTHORIZED";
+                    else if (xhr.status === 404) statusText = "NOT_FOUND";
                     onError({ status: xhr.status, statusText: statusText });
                 }
             }
