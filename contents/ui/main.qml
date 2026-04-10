@@ -505,6 +505,7 @@ PlasmoidItem {
 
             onPinToggled: function(checked) {
                 Plasmoid.configuration.pin = checked;
+                header.pinChecked = checked;
             }
 
             onThinkingToggled: function(enabled) {
