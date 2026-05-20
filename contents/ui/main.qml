@@ -274,14 +274,21 @@ PlasmoidItem {
     }
 
     function getModels() {
-        var ollamaProvider = getProvider(getProviderIndex());
-        var ollamaUrl = (ollamaProvider && ollamaProvider.url) ? ollamaProvider.url : "http://localhost:11434";
+        var ollamaUrl = "http://localhost:11434";
+        for (var i = 0; i < providers.length; i++) {
+            if (providers[i].type === "ollama" && providers[i].enabled !== false) {
+                if (providers[i].url) ollamaUrl = providers[i].url;
+                break;
+            }
+        }
         ApiClient.getOllamaModels(
             ollamaUrl,
             function(models) {
                 if (models.length) {
                     hasLocalModel = true;
-                    currentModel = models[0];
+                    if (getProviderType() === "ollama" && !currentModel) {
+                        currentModel = models[0];
+                    }
                     ollamaModels = models.map(model => ({
                         text: ApiClient.parseTextToComboBox(model),
                         value: model
@@ -300,9 +307,7 @@ PlasmoidItem {
             Plasmoid.configuration.provider = currentProvider;
         }
 
-        if (getProviderType() === "ollama") {
-            getModels();
-        }
+        getModels();
     }
 
     function getThinkingEnabledForCurrentProvider() {
@@ -497,6 +502,9 @@ PlasmoidItem {
                 Plasmoid.configuration.provider = provider;
                 if (getProviderType() === "ollama") {
                     root.currentModel = model;
+                    if (root.ollamaModels.length === 0) {
+                        root.getModels();
+                    }
                 }
                 if (listModelController) listModelController.clear();
                 promptArray = [];
