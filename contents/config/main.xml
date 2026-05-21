@@ -22,5 +22,18 @@
       <label>Keep widget open when clicking outside</label>
       <default>false</default>
     </entry>
+    <entry name="mcpServers" type="String">
+      <label>JSON array of configured MCP servers</label>
+      <default>[]</default>
+    </entry>
+
+    <entry name="skillFolders" type="String">
+      <label>JSON array of skill folder paths to scan for SKILL.md files</label>
+      <default>[]</default>
+    </entry>
+    <entry name="agentFilePath" type="String">
+      <label>Path to agent instructions file</label>
+      <default></default>
+    </entry>
   </group>
 </kcfg>

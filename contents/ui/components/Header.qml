@@ -141,7 +141,7 @@ PlasmaExtras.PlasmoidHeading {
         }
 
         PlasmaComponents.CheckBox {
-            visible: root.currentProvider.startsWith("openai-compatible-")
+            visible: root.currentProvider.startsWith("openai-compatible-") || root.currentProvider.startsWith("ollama-")
             text: i18n("Thinking")
             checked: root.thinkingEnabled
             onCheckedChanged: {

@@ -20,4 +20,10 @@ ConfigModel {
         icon: "preferences-desktop-color"
         source: "ConfigAppearance.qml"
     }
+
+    ConfigCategory {
+        name: i18n("MCP & Skills")
+        icon: "network-connect"
+        source: "ConfigMCP.qml"
+    }
 }
